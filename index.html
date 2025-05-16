@@ -1,0 +1,1790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treasure Hunter Game</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(45deg, #1a1a2e, #16213e);
+            font-family: Arial, sans-serif;
+        }
+        #gameContainer {
+            position: relative;
+            width: 800px;
+            text-align: center;
+        }
+        #gameCanvas {
+            border: 3px solid #e94560;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #87CEEB 0%, #4A90E2 100%);
+            display: none;
+        }
+        #score, #highScore {
+            color: #fff;
+            font-size: 24px;
+            margin: 10px 0;
+            display: none;
+        }
+        #highScore {
+            color: #ffd700;
+            font-size: 20px;
+        }
+        .menu {
+            background: rgba(0, 0, 0, 0.85);
+            padding: 40px;
+            border-radius: 15px;
+            border: 3px solid #e94560;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in;
+        }
+        .menu h1 {
+            color: #e94560;
+            font-size: 48px;
+            margin: 0 0 30px 0;
+            text-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+        }
+        .menu-btn {
+            display: block;
+            width: 200px;
+            padding: 15px 20px;
+            font-size: 20px;
+            background-color: #e94560;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 15px auto;
+            transition: all 0.3s ease;
+        }
+        .menu-btn:hover {
+            transform: scale(1.1);
+            background-color: #ff5472;
+        }
+        #restartBtn {
+            background-color: #4CAF50;  /* Green color for restart */
+        }
+        #restartBtn:hover {
+            background-color: #45a049;
+        }
+        .game-over-overlay {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            padding: 30px;
+            border-radius: 15px;
+            border: 3px solid #e94560;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in;
+        }
+        .game-over-overlay h1 {
+            color: #e94560;
+            font-size: 48px;
+            margin: 0 0 20px 0;
+            text-shadow: 0 0 10px rgba(233, 69, 96, 0.5);
+        }
+        .game-over-overlay p {
+            color: #fff;
+            font-size: 24px;
+            margin: 10px 0;
+        }
+        .final-score {
+            color: #ffd700;
+            font-size: 36px;
+            margin: 20px 0;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .controls-info {
+            color: #fff;
+            font-size: 18px;
+            margin: 20px 0;
+            text-align: left;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        #controlsButton {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(233, 69, 96, 0.8);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 14px;
+            z-index: 1000;
+        }
+        #controlsButton:hover {
+            background-color: #e94560;
+        }
+        #controlsPopup {
+            display: none;
+            position: absolute;
+            top: 50px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #e94560;
+            border-radius: 10px;
+            padding: 15px;
+            color: white;
+            font-size: 14px;
+            z-index: 1000;
+            width: 200px;
+        }
+        #controlsPopup.show {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+        .key {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .mode-selector {
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .mode-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: 2px solid #e94560;
+            background-color: transparent;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .mode-btn:hover {
+            background-color: rgba(233, 69, 96, 0.2);
+        }
+        .mode-btn.selected {
+            background-color: #e94560;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="score">Score: 0</div>
+        <div id="highScore">High Score: 0</div>
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        <button id="controlsButton">Controls</button>
+        <div id="controlsPopup">
+            <strong>Game Controls:</strong><br><br>
+            <div><span class="key">←</span> <span class="key">→</span> Move left/right</div>
+            <div><span class="key">↑</span> Jump</div>
+            <div><span class="key">ESC</span> Pause game</div>
+            <div><span class="key">S</span> Save game (when paused)</div>
+            <div><span class="key">M</span> Return to menu (when paused)</div>
+        </div>
+        
+        <div id="mainMenu" class="menu">
+            <h1>Treasure Hunter</h1>
+            <div class="mode-selector">
+                <button class="mode-btn selected" id="dayModeBtn">Day Mode</button>
+                <button class="mode-btn" id="nightModeBtn">Night Mode</button>
+            </div>
+            <button class="menu-btn" id="playBtn">Play Game</button>
+            <button class="menu-btn" id="loadBtn">Load Game</button>
+            <button class="menu-btn" id="quitBtn">Quit Game</button>
+        </div>
+
+        <div class="game-over-overlay" id="gameOverOverlay">
+            <h1>Game Over!</h1>
+            <p>Final Score:</p>
+            <div class="final-score" id="finalScore">0</div>
+            <p id="highScoreMessage"></p>
+            <button class="menu-btn" id="restartBtn">Restart Game</button>
+            <button class="menu-btn" id="returnToMenuBtn">Return to Menu</button>
+        </div>
+    </div>
+
+    <script>
+        // Wait for DOM to be fully loaded before initializing
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const scoreElement = document.getElementById('score');
+            const highScoreElement = document.getElementById('highScore');
+            const gameOverOverlay = document.getElementById('gameOverOverlay');
+            const finalScoreElement = document.getElementById('finalScore');
+            const highScoreMessage = document.getElementById('highScoreMessage');
+            const mainMenu = document.getElementById('mainMenu');
+            const playBtn = document.getElementById('playBtn');
+            const loadBtn = document.getElementById('loadBtn');
+            const quitBtn = document.getElementById('quitBtn');
+            const returnToMenuBtn = document.getElementById('returnToMenuBtn');
+            const controlsButton = document.getElementById('controlsButton');
+            const controlsPopup = document.getElementById('controlsPopup');
+            const restartBtn = document.getElementById('restartBtn');
+
+            // Game state
+            let score = 0;
+            let highScore = 0;
+            let gameLoop;
+            let gameStarted = false;
+            let coinRotation = 0;
+            let savedGameState = null;
+            let bombFuseAnimation = 0;
+            let explosionParticles = [];
+            let smokeParticles = [];
+            let isNightMode = false;
+
+            // Player setup
+            const player = {
+                x: 50,
+                y: canvas.height - 45,  // Adjusted to be inside the road
+                width: 30,
+                height: 30,
+                speed: 3,
+                jumping: false,
+                velocityY: 0,
+                jumpPower: -15,
+                gravity: 0.8,
+                groundY: canvas.height - 45  // Adjusted to match new y position
+            };
+
+            // Background elements
+            const background = {
+                sky: {
+                    clouds: [],
+                    birds: [],
+                    birdSpawnTimer: 0,
+                    birdSpawnInterval: 2000,
+                    lastBirdSpawnTime: 0
+                },
+                mountains: {
+                    offset: 0,
+                    points: []
+                },
+                trees: {
+                    baseY: canvas.height - 100,  // Above the road
+                    spacing: 70,  // Reduced spacing further for more overlap
+                    speed: 2,
+                    types: {
+                        PINE: 0,
+                        ROUND: 1,
+                        BUSHY: 2
+                    }
+                },
+                road: {
+                    offset: 0,
+                    stripeWidth: 50,
+                    stripeSpacing: 100
+                },
+                gameSpeed: 2
+            };
+
+            // Collectibles and obstacles
+            let collectibles = [];
+            let obstacles = [];
+
+            // Controls
+            const keys = {
+                ArrowLeft: false,
+                ArrowRight: false,
+                ArrowUp: false,
+                Escape: false
+            };
+
+            function drawMountains(offset) {
+                // Draw mountains that repeat infinitely
+                ctx.fillStyle = '#90EE90';  // Light green color
+
+                // Calculate which section of mountains we're seeing based on player position
+                const sectionWidth = 1200;  // Width of one complete mountain section
+                const currentSection = Math.floor(player.x / sectionWidth);
+                
+                // Draw mountains for current and next section
+                for (let section = currentSection; section <= currentSection + 1; section++) {
+                    const sectionOffset = section * sectionWidth;
+                    
+                    // Mountains in each section
+                    [
+                        { width: 300, height: 180, xOffset: 0 },
+                        { width: 400, height: 150, xOffset: 250 },
+                        { width: 350, height: 200, xOffset: 600 },
+                        { width: 250, height: 130, xOffset: 900 }
+                    ].forEach(mountain => {
+                        const mountainX = sectionOffset + mountain.xOffset - player.x;
+                        
+                        // Only draw if mountain is visible
+                        if (mountainX > -mountain.width && mountainX < canvas.width) {
+                            // Draw main mountain shape
+                            ctx.beginPath();
+                            ctx.moveTo(mountainX, canvas.height);
+                            ctx.lineTo(mountainX + mountain.width/2, canvas.height - mountain.height);
+                            ctx.lineTo(mountainX + mountain.width, canvas.height);
+                            ctx.fill();
+
+                            // Add shading
+                            ctx.fillStyle = '#7FBF7F';
+                            ctx.beginPath();
+                            ctx.moveTo(mountainX + mountain.width/2, canvas.height - mountain.height);
+                            ctx.lineTo(mountainX + mountain.width * 0.7, canvas.height - mountain.height * 0.7);
+                            ctx.lineTo(mountainX + mountain.width * 0.8, canvas.height - mountain.height * 0.5);
+                            ctx.lineTo(mountainX + mountain.width/2, canvas.height - mountain.height);
+                            ctx.fill();
+                            
+                            ctx.fillStyle = '#90EE90';
+                        }
+                    });
+                }
+            }
+
+            function drawCloud(x, y, width) {
+                ctx.save();
+                
+                ctx.fillStyle = `rgba(255, 255, 255, ${isNightMode ? 0.3 : 0.8})`;
+                ctx.beginPath();
+                ctx.arc(x, y, width/2, 0, Math.PI * 2);
+                ctx.arc(x + width/3, y - width/6, width/3, 0, Math.PI * 2);
+                ctx.arc(x + width/2, y + width/6, width/3, 0, Math.PI * 2);
+                ctx.arc(x - width/3, y, width/3, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            function initBackground() {
+                // Generate initial birds
+                background.sky.birds = [];
+                background.sky.birdSpawnInterval = 2000;
+                background.sky.lastBirdSpawnTime = 0;
+                
+                // Create initial set of birds at different positions
+                for (let i = 0; i < 5; i++) {
+                    background.sky.birds.push({
+                        ...createNewBird(),
+                        x: Math.random() * canvas.width * 2 - canvas.width  // Spread across view
+                    });
+                }
+
+                // Generate clouds
+                for (let i = 0; i < 4; i++) {
+                    background.sky.clouds.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * (canvas.height / 3),
+                        width: 80 + Math.random() * 40, // Varied cloud sizes
+                        speed: 0.15 + Math.random() * 0.1 // Much slower speed
+                    });
+                }
+            }
+
+            function drawBackground() {
+                // Draw sky gradient based on mode
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                if (isNightMode) {
+                    // Night sky gradient
+                    gradient.addColorStop(0, '#0a1f44');  // Dark blue
+                    gradient.addColorStop(1, '#1a365d');  // Lighter blue
+                    
+                    // Draw stars
+                    for (let i = 0; i < 100; i++) {
+                        const x = ((background.mountains.offset * 0.1) + i * 37) % canvas.width;
+                        const y = (i * 23) % (canvas.height * 0.7);
+                        const size = Math.random() * 2;
+                        const opacity = 0.5 + Math.random() * 0.5;
+                        
+                        ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+
+                    // Draw moon
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(100, 80, 30, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Moon crater details
+                    ctx.fillStyle = '#f0f0f0';
+                    ctx.beginPath();
+                    ctx.arc(90, 70, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(110, 85, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Day sky gradient
+                    gradient.addColorStop(0, '#87CEEB');  // Light blue
+                    gradient.addColorStop(1, '#4A90E2');  // Darker blue
+                }
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw birds
+                background.sky.birds.forEach(bird => {
+                    drawBird(bird);
+                });
+
+                // Draw clouds with adjusted opacity for night mode
+                background.sky.clouds.forEach(cloud => {
+                    drawCloud(cloud.x, cloud.y, cloud.width, isNightMode ? 0.3 : 0.8);
+                });
+
+                // Draw mountains with adjusted colors for night mode
+                ctx.fillStyle = isNightMode ? '#1a4731' : '#90EE90';  // Darker green for night
+                drawMountains(background.mountains.offset);
+
+                // Draw road with adjusted colors for night mode
+                drawRoad();
+            }
+
+            function update() {
+                if (!gameStarted) return;
+
+                // Clear canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Draw background
+                drawBackground();
+
+                // Keep player centered at 1/3 of screen width
+                const playerScreenX = canvas.width / 3;
+
+                // Calculate world offset based on player's absolute position
+                const worldOffset = player.x - playerScreenX;
+
+                // Update and draw birds
+                background.sky.birds = background.sky.birds.filter(bird => {
+                    // Convert bird's world position to screen position
+                    const birdScreenX = bird.x - worldOffset;
+                    
+                    // Update bird position
+                    bird.x += bird.speed;
+                    bird.y += Math.sin(bird.x / 100) * 0.5;  // Add gentle wave motion
+                    
+                    // If bird moves off screen, reset it to start
+                    if (birdScreenX > canvas.width + bird.size * 2) {
+                        bird.x = player.x - canvas.width;  // Reset to left of player's view
+                        bird.y = Math.random() * (canvas.height / 3) + 30;
+                        return true;
+                    }
+                    
+                    // Draw bird at screen position
+                    if (birdScreenX > -bird.size * 2 && birdScreenX < canvas.width + bird.size * 2) {
+                        drawBird({
+                            ...bird,
+                            x: birdScreenX
+                        });
+                    }
+                    return true;
+                });
+
+                // Spawn new birds if needed
+                const currentTime = Date.now();
+                if (currentTime - background.sky.lastBirdSpawnTime > background.sky.birdSpawnInterval) {
+                    background.sky.birds.push({
+                        ...createNewBird(),
+                        x: player.x - canvas.width  // Start from left of player's view
+                    });
+                    background.sky.lastBirdSpawnTime = currentTime;
+                }
+
+                // Tree configuration
+                const treeSizes = {
+                    SMALL: 40,
+                    MEDIUM: 55,
+                    LARGE: 70
+                };
+
+                // Calculate ground level for trees
+                const roadHeight = 30;
+                const groundLevel = canvas.height - roadHeight;
+
+                // Tree group configuration
+                const treeSpacing = 50;  // Space between trees in a group
+                const groupGap = 300;     // Space between groups
+                const groupPattern = [3, 6, 5, 4];  // Pattern of trees in each group
+                
+                // Calculate total length of one complete pattern
+                const patternLength = groupPattern.reduce((sum, groupSize) => {
+                    return sum + (groupSize * treeSpacing) + groupGap;
+                }, 0);
+
+                // Draw trees relative to world offset
+                for (let patternRepeat = -2; patternRepeat <= 2; patternRepeat++) {
+                    let currentX = -worldOffset + (patternRepeat * patternLength);
+                    
+                    // Draw each group in the pattern
+                    for (let groupIndex = 0; groupIndex < groupPattern.length; groupIndex++) {
+                        const groupSize = groupPattern[groupIndex];
+                        
+                        // Draw trees in current group
+                        for (let treeIndex = 0; treeIndex < groupSize; treeIndex++) {
+                            const x = currentX + (treeIndex * treeSpacing);
+                            
+                            // Only draw if tree would be visible (with buffer)
+                            if (x > -200 && x < canvas.width + 200) {
+                                // Back row (small trees)
+                                drawTree(x, 
+                                    groundLevel - treeSizes.SMALL + 5, 
+                                    treeSizes.SMALL, 
+                                    treeIndex % 3);
+                                
+                                // Middle row (medium trees)
+                                drawTree(x + 15, 
+                                    groundLevel - treeSizes.MEDIUM + 5, 
+                                    treeSizes.MEDIUM, 
+                                    (treeIndex + 1) % 3);
+                                
+                                // Front row (large trees)
+                                drawTree(x + 30, 
+                                    groundLevel - treeSizes.LARGE + 5, 
+                                    treeSizes.LARGE, 
+                                    (treeIndex + 2) % 3);
+                            }
+                        }
+                        
+                        // Move to next group position
+                        currentX += (groupSize * treeSpacing) + groupGap;
+                    }
+                }
+
+                // Draw road
+                drawRoad();
+
+                // Draw player at screen position (not world position)
+                if (gameStarted) {
+                    ctx.fillStyle = '#e94560';
+                    ctx.fillRect(playerScreenX, player.y, player.width, player.height);
+                }
+
+                // Draw and update collectibles (coins)
+for (let i = collectibles.length - 1; i >= 0; i--) {
+    const coin = collectibles[i];
+    // Move coin to the left as the world scrolls
+    coin.x -= background.gameSpeed;
+
+    // Draw coin at its position relative to the world offset
+    drawCoin(coin.x - worldOffset, coin.y, coin.width, coin.height);
+
+    // Collision with player
+    if (
+        playerScreenX < coin.x - worldOffset + coin.width &&
+        playerScreenX + player.width > coin.x - worldOffset &&
+        player.y < coin.y + coin.height &&
+        player.y + player.height > coin.y
+    ) {
+        // Collect coin
+        collectibles.splice(i, 1);
+        score += 10;
+        scoreElement.textContent = `Score: ${score}`;
+    } else if (coin.x - worldOffset + coin.width < 0) {
+        // Remove coins that have gone off screen
+        collectibles.splice(i, 1);
+    }
+}
+
+// Draw and update obstacles (bombs)
+for (let i = obstacles.length - 1; i >= 0; i--) {
+    const bomb = obstacles[i];
+    // Move bomb to the left as the world scrolls
+    bomb.x -= background.gameSpeed;
+
+    // Draw bomb at its position relative to the world offset
+    drawBomb(bomb.x - worldOffset, bomb.y, bomb.width, bomb.height);
+
+    // Collision with player
+    if (
+        playerScreenX < bomb.x - worldOffset + bomb.width &&
+        playerScreenX + player.width > bomb.x - worldOffset &&
+        player.y < bomb.y + bomb.height &&
+        player.y + player.height > bomb.y
+    ) {
+        // Hit bomb: game over
+        handleCollision(bomb);
+        return; // Stop update loop
+    } else if (bomb.x - worldOffset + bomb.width < 0) {
+        // Remove bombs that have gone off screen
+        obstacles.splice(i, 1);
+    }
+}
+
+                // Update player position in world coordinates
+                if (gameStarted) {
+                    if (keys.ArrowLeft) {
+                        // Prevent moving left beyond the starting point
+                        const newX = player.x - player.speed;
+                        if (newX >= 50) { // 50 is the initial starting position
+                            player.x = newX;
+                        }
+                    }
+                    if (keys.ArrowRight) {
+                        // Allow infinite movement to the right
+                        player.x += player.speed;
+                    }
+
+                    // Handle jumping physics
+                    if (player.jumping) {
+                        player.velocityY += player.gravity;
+                        player.y += player.velocityY;
+
+                        // Ground collision
+                        if (player.y >= player.groundY) {
+                            player.y = player.groundY;
+                            player.jumping = false;
+                            player.velocityY = 0;
+                        }
+                    }
+                }
+            }
+
+            function drawInfiniteTrees() {
+                // Tree configuration
+                const treeConfig = {
+                    small: { minSize: 35, maxSize: 45 },
+                    medium: { minSize: 50, maxSize: 60 },
+                    large: { minSize: 65, maxSize: 75 }
+                };
+
+                // Define rows of trees with different depths
+                const rows = [
+                    { y: canvas.height - 100, parallaxSpeed: 1, sizeMult: 1 },      // Front row
+                    { y: canvas.height - 110, parallaxSpeed: 0.8, sizeMult: 0.9 },  // Middle row
+                    { y: canvas.height - 120, parallaxSpeed: 0.6, sizeMult: 0.8 }   // Back row
+                ];
+
+                // Calculate visible range based on player position
+                const treeSpacing = 100;  // Space between trees
+                const visibleRange = {
+                    start: Math.floor((background.trees.offset * -1) / treeSpacing) - 2,
+                    end: Math.floor((background.trees.offset * -1 + canvas.width) / treeSpacing) + 2
+                };
+
+                // Draw trees for each row
+                rows.forEach(row => {
+                    for (let i = visibleRange.start; i <= visibleRange.end; i++) {
+                        // Use consistent random size and type based on position
+                        const hash = Math.abs(i * 10000 + row.y);
+                        const sizeType = hash % 3;  // 0: small, 1: medium, 2: large
+                        const treeType = Math.floor(hash / 3) % 3;  // 0: pine, 1: round, 2: bushy
+
+                        // Calculate tree size
+                        let baseSize;
+                        switch(sizeType) {
+                            case 0:
+                                baseSize = treeConfig.small.minSize + 
+                                    (hash % (treeConfig.small.maxSize - treeConfig.small.minSize));
+                                break;
+                            case 1:
+                                baseSize = treeConfig.medium.minSize + 
+                                    (hash % (treeConfig.medium.maxSize - treeConfig.medium.minSize));
+                                break;
+                            case 2:
+                                baseSize = treeConfig.large.minSize + 
+                                    (hash % (treeConfig.large.maxSize - treeConfig.large.minSize));
+                                break;
+                        }
+
+                        // Calculate x position with parallax effect
+                        const x = i * treeSpacing + background.trees.offset * row.parallaxSpeed;
+                        
+                        // Only draw if tree would be visible
+                        if (x > -100 && x < canvas.width + 100) {
+                            // Add slight random offset to x position based on hash
+                            const xOffset = (hash % 20) - 10;
+                            drawTree(
+                                x + xOffset, 
+                                row.y, 
+                                baseSize * row.sizeMult,
+                                treeType
+                            );
+                        }
+                    }
+                });
+            }
+
+            function createSmoke(x, y) {
+                // Create smoke particles
+                for (let i = 0; i < 20; i++) {
+                    smokeParticles.push({
+                        x: x,
+                        y: y,
+                        angle: (Math.PI * 2 * i) / 20 + Math.random() * 0.5,
+                        speed: 2 + Math.random() * 2,
+                        size: 15 + Math.random() * 10,
+                        life: 1,
+                        color: `rgba(50, 50, 50, 0.8)`
+                    });
+                }
+            }
+
+            function drawSmoke() {
+                ctx.save();
+                
+                // Add subtle screen shake
+                if (smokeParticles.length > 0) {
+                    const shake = (Math.random() - 0.5) * 3;
+                    ctx.translate(shake, shake);
+                }
+
+                for (let i = smokeParticles.length - 1; i >= 0; i--) {
+                    const particle = smokeParticles[i];
+                    
+                    // Update particle position
+                    particle.x += Math.cos(particle.angle) * particle.speed;
+                    particle.y += Math.sin(particle.angle) * particle.speed - 0.5;
+                    particle.life -= 0.02;
+                    particle.size += 0.5;
+                    
+                    // Draw smoke particle
+                    const gradient = ctx.createRadialGradient(
+                        particle.x, particle.y, 0,
+                        particle.x, particle.y, particle.size
+                    );
+                    
+                    gradient.addColorStop(0, particle.color);
+                    gradient.addColorStop(1, `rgba(50, 50, 50, 0)`);
+                    
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                    
+                    // Remove dead particles
+                    if (particle.life <= 0) {
+                        smokeParticles.splice(i, 1);
+                    }
+                }
+
+                ctx.restore();
+            }
+
+            function handleCollision(obstacle) {
+                // Stop the game immediately
+                gameStarted = false;
+                
+                // Clear any existing game loops
+                if (gameLoop) {
+                    clearInterval(gameLoop);
+                    gameLoop = null;
+                }
+
+                // Clear spawn intervals
+                if (window.collectibleInterval) clearInterval(window.collectibleInterval);
+                if (window.obstacleInterval) clearInterval(window.obstacleInterval);
+
+                // Create smoke at collision point
+                createSmoke(obstacle.x + obstacle.width/2, obstacle.y + obstacle.height/2);
+
+                // Start smoke animation
+                let smokeTimer = 0;
+                const smokeAnimation = setInterval(() => {
+                    // Clear and redraw background
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    drawBackground();
+                    
+                    // Draw remaining collectibles
+                    collectibles.forEach(coin => drawCoin(coin.x, coin.y, coin.width, coin.height));
+                    
+                    // Draw smoke
+                    drawSmoke();
+                    
+                    smokeTimer += 16;
+                    
+                    // Show game over screen after smoke dissipates
+                    if (smokeTimer >= 1000 && smokeParticles.length === 0) {
+                        clearInterval(smokeAnimation);
+                        
+                        // Update high score
+                        if (score > highScore) {
+                            highScore = score;
+                            highScoreElement.textContent = `High Score: ${highScore}`;
+                            highScoreMessage.textContent = '🎉 New High Score! 🎉';
+                        } else {
+                            highScoreMessage.textContent = `High Score: ${highScore}`;
+                        }
+                        
+                        // Show game over screen
+                        gameOverOverlay.style.display = 'block';
+                        finalScoreElement.textContent = score;
+                    }
+                }, 1000/60);
+            }
+
+            function gameOver() {
+                if (gameStarted) {
+                    handleCollision();
+                }
+            }
+
+            function checkCollision(rect1, rect2) {
+                return rect1.x < rect2.x + rect2.width &&
+                       rect1.x + rect1.width > rect2.x &&
+                       rect1.y < rect2.y + rect2.height &&
+                       rect1.y + rect1.height > rect2.y;
+            }
+
+            function spawnCollectibles() {
+                // Clear any existing interval
+                if (window.collectibleInterval) {
+                    clearInterval(window.collectibleInterval);
+                }
+
+                // Spawn collectibles on screen
+                window.collectibleInterval = setInterval(() => {
+                    if (!gameStarted) return;
+
+                    // Calculate spawn position relative to player's view
+                    const worldOffset = player.x - canvas.width / 3;
+                    const spawnX = worldOffset + canvas.width + 50; // Spawn just off the right edge of screen
+                    const baseY = player.groundY - 50; // Slightly above ground level
+                    
+                    // Create a small group of coins (3-5 coins) in a pattern
+                    const coinCount = 3 + Math.floor(Math.random() * 3);
+                    const spacing = 40; // Space between coins
+                    
+                    // Create different coin patterns
+                    const patterns = [
+                        // Straight line
+                        (i) => ({ x: spawnX + i * spacing, y: baseY }),
+                        // Arc pattern
+                        (i) => ({ x: spawnX + i * spacing, y: baseY - Math.sin(i * Math.PI / 2) * 50 }),
+                        // Zigzag pattern
+                        (i) => ({ x: spawnX + i * spacing, y: baseY - (i % 2 === 0 ? 30 : -30) }),
+                        // Diamond pattern
+                        (i) => {
+                            const angle = (i / coinCount) * Math.PI * 2;
+                            return {
+                                x: spawnX + i * spacing,
+                                y: baseY + Math.sin(angle) * 40
+                            };
+                        }
+                    ];
+
+                    // Select random pattern
+                    const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+                    
+                    for (let i = 0; i < coinCount; i++) {
+                        const position = pattern(i);
+                        collectibles.push({
+                            x: position.x,
+                            y: position.y,
+                            width: 30,
+                            height: 30
+                        });
+                    }
+                }, 5000 + Math.random() * 5000); // Random interval between 5-10 seconds
+            }
+
+            function spawnObstacles() {
+                // Clear any existing interval
+                if (window.obstacleInterval) {
+                    clearInterval(window.obstacleInterval);
+                }
+
+                // Spawn obstacles on screen
+                window.obstacleInterval = setInterval(() => {
+                    if (!gameStarted) return;
+
+                    // Calculate spawn position relative to player's view
+                    const worldOffset = player.x - canvas.width / 3;
+                    const spawnX = worldOffset + canvas.width + 50; // Spawn just off the right edge of screen
+                    
+                    // Random vertical position within a reasonable range
+                    const minY = player.groundY - 100; // Higher than player can jump
+                    const maxY = player.groundY - 20; // Just above ground
+                    const spawnY = minY + Math.random() * (maxY - minY);
+                    
+                    // Add some variation to bomb placement
+                    const bombTypes = [
+                        // Single bomb
+                        () => [{x: spawnX, y: spawnY}],
+                        // Two bombs with gap in between
+                        () => [
+                            {x: spawnX, y: spawnY},
+                            {x: spawnX + 100, y: spawnY - 30}
+                        ],
+                        // Three bombs in triangle formation
+                        () => [
+                            {x: spawnX, y: spawnY},
+                            {x: spawnX + 60, y: spawnY - 40},
+                            {x: spawnX + 120, y: spawnY}
+                        ]
+                    ];
+
+                    // Select random bomb pattern
+                    const pattern = bombTypes[Math.floor(Math.random() * bombTypes.length)]();
+                    
+                    // Add all bombs from the pattern
+                    pattern.forEach(pos => {
+                        obstacles.push({
+                            x: pos.x,
+                            y: pos.y,
+                            width: 40,
+                            height: 40
+                        });
+                    });
+                }, 7000 + Math.random() * 3000); // Random interval between 7-10 seconds
+            }
+
+            function drawCoin(x, y, width, height) {
+                ctx.save();
+                ctx.translate(x + width/2, y + height/2);
+                
+                // Slower, smoother rotation
+                const rotationSpeed = 0.02;
+                coinRotation += rotationSpeed;
+                
+                // Create 3D effect with rotation
+                const perspective = Math.cos(coinRotation) * 0.5;
+                ctx.scale(Math.abs(perspective) + 0.5, 1);
+                
+                // Determine if showing heads or tails based on rotation
+                const showingHeads = perspective > 0;
+                
+                // Main coin body
+                ctx.beginPath();
+                ctx.arc(0, 0, width/2, 0, Math.PI * 2);
+                ctx.fillStyle = showingHeads ? '#FFD700' : '#DAA520';
+                ctx.fill();
+                
+                // Only draw details if the coin isn't in mid-flip
+                if (Math.abs(perspective) > 0.3) {
+                    // Outer ring
+                    ctx.beginPath();
+                    ctx.arc(0, 0, width/2, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#B8860B';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    if (showingHeads) {
+                        // Heads side design
+                        // Inner circle
+                        ctx.beginPath();
+                        ctx.arc(0, 0, width/3, 0, Math.PI * 2);
+                        ctx.strokeStyle = '#B8860B';
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+                        
+                        // Center star
+                        const starPoints = 5;
+                        const outerRadius = width/4;
+                        const innerRadius = width/8;
+                        
+                        ctx.beginPath();
+                        for(let i = 0; i < starPoints * 2; i++) {
+                            const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                            const angle = (i * Math.PI) / starPoints - Math.PI/2;
+                            const x = Math.cos(angle) * radius;
+                            const y = Math.sin(angle) * radius;
+                            if(i === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                        }
+                        ctx.closePath();
+                        ctx.fillStyle = '#B8860B';
+                        ctx.fill();
+                    } else {
+                        // Tails side design
+                        // Decorative circles
+                        for (let i = 0; i < 6; i++) {
+                            const angle = (i * Math.PI * 2) / 6;
+                            const circleX = Math.cos(angle) * width/4;
+                            const circleY = Math.sin(angle) * width/4;
+                            ctx.beginPath();
+                            ctx.arc(circleX, circleY, width/10, 0, Math.PI * 2);
+                            ctx.fillStyle = '#B8860B';
+                            ctx.fill();
+                        }
+                        
+                        // Center circle
+                        ctx.beginPath();
+                        ctx.arc(0, 0, width/8, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                
+                // Add shine effect
+                const gradient = ctx.createLinearGradient(-width/2, -height/2, width/4, height/4);
+                gradient.addColorStop(0, `rgba(255, 255, 255, ${Math.abs(perspective) * 0.5})`);
+                gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
+                gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                
+                ctx.beginPath();
+                ctx.arc(0, 0, width/2 - 1, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                
+                ctx.restore();
+            }
+
+            function drawBomb(x, y, width, height) {
+                ctx.save();
+                ctx.translate(x + width/2, y + height/2);
+                
+                // Update fuse animation
+                bombFuseAnimation += 0.1;
+
+                // Draw smoke
+                const smokeY = -height/2 - height/2;
+                const smokeX = width/2;
+                
+                // Draw 3 smoke puffs with different opacities and sizes
+                for(let i = 0; i < 3; i++) {
+                    const time = Date.now() / 1000 + i * 0.3; // Offset each puff
+                    const offsetX = Math.sin(time * 2) * 5;
+                    const offsetY = -i * 10 - Math.cos(time * 2) * 3;
+                    const opacity = 0.7 - i * 0.2;
+                    const size = (3 - i) * 4;
+                    
+                    ctx.beginPath();
+                    ctx.arc(smokeX + offsetX, smokeY + offsetY, size, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(120, 120, 120, ${opacity})`;
+                    ctx.fill();
+                }
+
+                // Main bomb body gradient
+                const bombGradient = ctx.createRadialGradient(
+                    -width/6, -height/6,  // Inner circle position (highlight)
+                    0,                    // Inner radius
+                    0, 0,                 // Outer circle position (center of bomb)
+                    width/1.5             // Outer radius
+                );
+                bombGradient.addColorStop(0, '#454545');    // Highlight
+                bombGradient.addColorStop(0.5, '#252525');  // Mid tone
+                bombGradient.addColorStop(1, '#151515');    // Shadow
+
+                // Draw main bomb body
+                ctx.beginPath();
+                ctx.arc(0, 0, width/2 - 2, 0, Math.PI * 2);
+                ctx.fillStyle = bombGradient;
+                ctx.fill();
+
+                // Add metallic rim at top
+                const rimGradient = ctx.createLinearGradient(-width/4, -height/2, width/4, -height/2 + 6);
+                rimGradient.addColorStop(0, '#555');
+                rimGradient.addColorStop(0.5, '#999');
+                rimGradient.addColorStop(1, '#555');
+
+                ctx.beginPath();
+                ctx.moveTo(-width/4, -height/2 + 3);
+                ctx.quadraticCurveTo(0, -height/2, width/4, -height/2 + 3);
+                ctx.quadraticCurveTo(0, -height/2 + 6, -width/4, -height/2 + 3);
+                ctx.fillStyle = rimGradient;
+                ctx.fill();
+
+                // Draw fuse
+                const fuseStart = {x: 0, y: -height/2 + 3};
+                const controlPoint = {
+                    x: width/3 + Math.sin(bombFuseAnimation) * 2,
+                    y: -height/2 - height/3
+                };
+                const fuseEnd = {
+                    x: width/2 + Math.sin(bombFuseAnimation + 1) * 3,
+                    y: -height/2 - height/2
+                };
+
+                // Main fuse
+                ctx.beginPath();
+                ctx.moveTo(fuseStart.x, fuseStart.y);
+                ctx.quadraticCurveTo(
+                    controlPoint.x,
+                    controlPoint.y,
+                    fuseEnd.x,
+                    fuseEnd.y
+                );
+                const fuseGradient = ctx.createLinearGradient(
+                    fuseStart.x, fuseStart.y,
+                    fuseEnd.x, fuseEnd.y
+                );
+                fuseGradient.addColorStop(0, '#8B4513');
+                fuseGradient.addColorStop(0.5, '#A0522D');
+                fuseGradient.addColorStop(1, '#8B4513');
+                ctx.strokeStyle = fuseGradient;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Draw smoke puffs
+                const numPuffs = 3;
+                for (let i = 0; i < numPuffs; i++) {
+                    const puffOffset = i * 8;
+                    const smokeX = fuseEnd.x + 5 + Math.sin(bombFuseAnimation * 2 + i) * 3;
+                    const smokeY = fuseEnd.y - puffOffset - Math.cos(bombFuseAnimation + i) * 2;
+                    const smokeSize = (numPuffs - i) * 3;
+                    
+                    // Create smoke gradient
+                    const smokeGradient = ctx.createRadialGradient(
+                        smokeX, smokeY, 0,
+                        smokeX, smokeY, smokeSize
+                    );
+                    smokeGradient.addColorStop(0, 'rgba(100, 100, 100, 0.8)');
+                    smokeGradient.addColorStop(1, 'rgba(100, 100, 100, 0)');
+                    
+                    ctx.beginPath();
+                    ctx.arc(smokeX, smokeY, smokeSize, 0, Math.PI * 2);
+                    ctx.fillStyle = smokeGradient;
+                    ctx.fill();
+                }
+
+                // Fuse sparkle animation
+                const sparkleX = fuseEnd.x;
+                const sparkleY = fuseEnd.y;
+                const sparkleSize = 4 + Math.sin(bombFuseAnimation * 2) * 2;
+
+                // Outer glow
+                const glowSize = sparkleSize * 2;
+                const glow = ctx.createRadialGradient(
+                    sparkleX, sparkleY, 0,
+                    sparkleX, sparkleY, glowSize
+                );
+                glow.addColorStop(0, 'rgba(255, 200, 0, 0.4)');
+                glow.addColorStop(1, 'rgba(255, 100, 0, 0)');
+                ctx.beginPath();
+                ctx.arc(sparkleX, sparkleY, glowSize, 0, Math.PI * 2);
+                ctx.fillStyle = glow;
+                ctx.fill();
+
+                // Sparkle
+                ctx.beginPath();
+                for(let i = 0; i < 8; i++) {
+                    const angle = (i * Math.PI * 2 / 8) + bombFuseAnimation;
+                    const innerRadius = sparkleSize * 0.5;
+                    const outerRadius = sparkleSize;
+                    const x1 = sparkleX + Math.cos(angle) * innerRadius;
+                    const y1 = sparkleY + Math.sin(angle) * innerRadius;
+                    const x2 = sparkleX + Math.cos(angle) * outerRadius;
+                    const y2 = sparkleY + Math.sin(angle) * outerRadius;
+                    
+                    if(i === 0) {
+                        ctx.moveTo(x2, y2);
+                    } else {
+                        ctx.lineTo(x2, y2);
+                    }
+                    ctx.lineTo(x1, y1);
+                }
+                ctx.closePath();
+                const sparkleGradient = ctx.createRadialGradient(
+                    sparkleX, sparkleY, sparkleSize * 0.3,
+                    sparkleX, sparkleY, sparkleSize
+                );
+                sparkleGradient.addColorStop(0, '#FFF');
+                sparkleGradient.addColorStop(0.5, '#FFD700');
+                sparkleGradient.addColorStop(1, '#FF4500');
+                ctx.fillStyle = sparkleGradient;
+                ctx.fill();
+
+                // Highlight on bomb
+                const highlight = ctx.createRadialGradient(
+                    -width/6, -height/6, 0,
+                    -width/6, -height/6, width/3
+                );
+                highlight.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+                highlight.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)');
+                highlight.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                
+                ctx.beginPath();
+                ctx.arc(-width/6, -height/6, width/3, 0, Math.PI * 2);
+                ctx.fillStyle = highlight;
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            function drawTree(x, y, size, type) {
+                ctx.save();
+                ctx.translate(x, y);
+
+                // Draw trunk with slight variation in color
+                const trunkColor = `rgb(${139 + Math.random() * 20}, ${69 + Math.random() * 10}, ${19 + Math.random() * 10})`;
+                ctx.fillStyle = trunkColor;
+                ctx.fillRect(-size/8, 0, size/4, size);
+
+                // Draw tree top based on type with color variations
+                switch(type) {
+                    case background.trees.types.PINE:
+                        // Pine tree (triangular) with multiple layers
+                        const pineColors = ['#2D5A27', '#355E3B', '#2D4A1E'];
+                        for (let i = 0; i < 3; i++) {
+                            ctx.fillStyle = pineColors[i];
+                            const layerSize = size * (1 - i * 0.2);
+                            const layerOffset = size * i * 0.25;
+                            
+                            ctx.beginPath();
+                            ctx.moveTo(-layerSize/1.5, size/2 - layerOffset);
+                            ctx.lineTo(0, -size/1.2 + layerOffset);
+                            ctx.lineTo(layerSize/1.5, size/2 - layerOffset);
+                            ctx.closePath();
+                            ctx.fill();
+                        }
+                        break;
+
+                    case background.trees.types.ROUND:
+                        // Round tree with multiple layers of foliage
+                        const roundColors = ['#355E3B', '#2D5A27', '#1B4D2E'];
+                        ctx.fillStyle = roundColors[0];
+                        ctx.beginPath();
+                        ctx.arc(0, -size/3, size/1.5, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        ctx.fillStyle = roundColors[1];
+                        ctx.beginPath();
+                        ctx.arc(-size/3, -size/2, size/2, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        ctx.fillStyle = roundColors[2];
+                        ctx.beginPath();
+                        ctx.arc(size/3, -size/2, size/2, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+
+                    case background.trees.types.BUSHY:
+                        // Bushy tree with multiple detailed clusters
+                        const bushyColors = ['#355E3B', '#2D5A27', '#1B4D2E'];
+                        const clusters = [
+                            {x: 0, y: -size/1.2, r: size/2},
+                            {x: -size/2, y: -size/2, r: size/2.5},
+                            {x: size/2, y: -size/2, r: size/2.5},
+                            {x: -size/3, y: -size/3, r: size/2.5},
+                            {x: size/3, y: -size/3, r: size/2.5},
+                            {x: 0, y: -size/2, r: size/2}
+                        ];
+                        
+                        clusters.forEach((cluster, i) => {
+                            ctx.fillStyle = bushyColors[i % 3];
+                            ctx.beginPath();
+                            ctx.arc(cluster.x, cluster.y, cluster.r, 0, Math.PI * 2);
+                            ctx.fill();
+                        });
+                        break;
+                }
+
+                ctx.restore();
+            }
+
+            function createNewBird() {
+                const size = 12 + Math.random() * 3; // Size range (12-15)
+                return {
+                    x: -size * 2, // Start from left side
+                    y: Math.random() * (canvas.height / 3) + 30,
+                    size: size,
+                    wingPosition: Math.random() * Math.PI * 2,
+                    wingSpeed: 0.3 + Math.random() * 0.1, // Faster wing movement
+                    speed: 3 + Math.random() * 2, // Faster horizontal movement
+                    color: Math.random() < 0.7 ? '#485460' : '#1e272e', // Natural bird colors
+                    headTilt: Math.sin(Date.now() / 1000) * 0.1,
+                    type: Math.floor(Math.random() * 3)
+                };
+            }
+
+            function drawBird(bird) {
+                ctx.save();
+                ctx.translate(bird.x, bird.y);
+                
+                // Add slight forward tilt
+                const flyingTilt = -0.1; // Subtle forward tilt
+                ctx.rotate(flyingTilt + bird.headTilt);
+
+                // Draw based on bird type
+                switch(bird.type) {
+                    case 0: // Small bird (sparrow-like)
+                        drawSmallBird(bird);
+                        break;
+                    case 1: // Medium bird (swallow-like)
+                        drawMediumBird(bird);
+                        break;
+                    case 2: // Large bird (hawk-like)
+                        drawLargeBird(bird);
+                        break;
+                }
+                
+                ctx.restore();
+                bird.wingPosition += bird.wingSpeed;
+            }
+
+            function drawSmallBird(bird) {
+                const wingY = Math.sin(bird.wingPosition) * 4;
+                
+                // Body
+                ctx.fillStyle = bird.color;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, bird.size * 0.7, bird.size * 0.4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Wings
+                drawDetailedWing(bird, -bird.size * 0.3, -bird.size * 0.1, wingY, 0.7, true);
+                drawDetailedWing(bird, bird.size * 0.3, -bird.size * 0.1, wingY, 0.7, false);
+
+                // Tail
+                drawDetailedTail(bird, -bird.size * 0.6, 0, 0.5);
+
+                // Head
+                ctx.beginPath();
+                ctx.arc(bird.size * 0.5, -bird.size * 0.15, bird.size * 0.25, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eye
+                drawDetailedEye(bird, bird.size * 0.6, -bird.size * 0.2, 0.12);
+
+                // Beak
+                drawDetailedBeak(bird, bird.size * 0.7, -bird.size * 0.15, 0.25);
+            }
+
+            function drawMediumBird(bird) {
+                const wingY = Math.sin(bird.wingPosition) * 5;
+                
+                // Body
+                ctx.fillStyle = bird.color;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, bird.size * 0.8, bird.size * 0.45, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Wings
+                drawDetailedWing(bird, -bird.size * 0.4, -bird.size * 0.15, wingY, 0.8, true);
+                drawDetailedWing(bird, bird.size * 0.4, -bird.size * 0.15, wingY, 0.8, false);
+
+                // Forked Tail
+                drawForkedTail(bird, -bird.size * 0.7, 0, 0.6);
+
+                // Head
+                ctx.beginPath();
+                ctx.arc(bird.size * 0.6, -bird.size * 0.2, bird.size * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eye
+                drawDetailedEye(bird, bird.size * 0.7, -bird.size * 0.25, 0.15);
+
+                // Beak
+                drawDetailedBeak(bird, bird.size * 0.85, -bird.size * 0.2, 0.3);
+            }
+
+            function drawLargeBird(bird) {
+                const wingY = Math.sin(bird.wingPosition) * 6;
+                
+                // Body
+                ctx.fillStyle = bird.color;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, bird.size * 0.9, bird.size * 0.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Wings
+                drawDetailedWing(bird, -bird.size * 0.5, -bird.size * 0.2, wingY, 0.9, true);
+                drawDetailedWing(bird, bird.size * 0.5, -bird.size * 0.2, wingY, 0.9, false);
+
+                // Tail
+                drawDetailedTail(bird, -bird.size * 0.8, 0, 0.7);
+
+                // Head
+                ctx.beginPath();
+                ctx.arc(bird.size * 0.7, -bird.size * 0.25, bird.size * 0.35, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eye
+                drawDetailedEye(bird, bird.size * 0.8, -bird.size * 0.3, 0.18);
+
+                // Hooked Beak
+                drawHookedBeak(bird, bird.size * 0.9, -bird.size * 0.25, 0.35);
+            }
+
+            function drawDetailedWing(bird, x, y, wingY, scale, isLeft) {
+                ctx.fillStyle = bird.color;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                
+                // Primary feathers
+                const featherSpread = isLeft ? -1 : 1;
+                ctx.quadraticCurveTo(
+                    x + (bird.size * scale * featherSpread), 
+                    y + wingY, 
+                    x + (bird.size * 0.2 * featherSpread), 
+                    y + wingY + bird.size * 0.3
+                );
+                
+                // Secondary feathers
+                ctx.quadraticCurveTo(
+                    x + (bird.size * 0.1 * featherSpread), 
+                    y + wingY * 0.5, 
+                    x, 
+                    y
+                );
+                ctx.fill();
+            }
+
+            function drawDetailedTail(bird, x, y, scale) {
+                ctx.fillStyle = bird.color;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x - bird.size * 0.4, y + bird.size * 0.15);
+                ctx.lineTo(x - bird.size * 0.3, y - bird.size * 0.15);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            function drawForkedTail(bird, x, y, scale) {
+                ctx.fillStyle = bird.color;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x - bird.size * 0.5, y + bird.size * 0.2);
+                ctx.lineTo(x - bird.size * 0.3, y);
+                ctx.lineTo(x - bird.size * 0.5, y - bird.size * 0.2);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            function drawDetailedEye(bird, x, y, scale) {
+                // White of eye
+                ctx.fillStyle = 'white';
+                ctx.beginPath();
+                ctx.arc(x, y, bird.size * scale, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Pupil
+                ctx.fillStyle = 'black';
+                ctx.beginPath();
+                ctx.arc(x + bird.size * scale * 0.2, y, bird.size * scale * 0.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            function drawDetailedBeak(bird, x, y, scale) {
+                ctx.fillStyle = '#666'; // Darker beak color
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + bird.size * scale, y + bird.size * 0.05);
+                ctx.lineTo(x, y + bird.size * 0.1);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            function drawHookedBeak(bird, x, y, scale) {
+                ctx.fillStyle = '#666';
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.quadraticCurveTo(
+                    x + bird.size * scale,
+                    y,
+                    x + bird.size * scale,
+                    y + bird.size * 0.15
+                );
+                ctx.lineTo(x, y + bird.size * 0.1);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            function drawRoad() {
+                const roadHeight = 30;
+                const stripeWidth = 50;
+                const stripeGap = 50;
+                const totalStripeWidth = stripeWidth + stripeGap;
+
+                // Draw main road with adjusted color for night
+                ctx.fillStyle = isNightMode ? '#333' : '#444';
+                ctx.fillRect(0, canvas.height - roadHeight, canvas.width, roadHeight);
+
+                // Draw stripes with adjusted opacity for night
+                ctx.fillStyle = isNightMode ? 'rgba(255, 255, 255, 0.5)' : '#FFF';
+                for(let x = 0; x < canvas.width + totalStripeWidth; x += totalStripeWidth) {
+                    ctx.fillRect(
+                        x,
+                        canvas.height - roadHeight/2 - 2,
+                        stripeWidth,
+                        4
+                    );
+                }
+
+                // Draw fixed street lights at specific positions
+                const lampPositions = [100, 400, 700];  // Fixed positions for the lamps
+                lampPositions.forEach(x => {
+                    drawStreetLightPole(x, canvas.height - roadHeight);
+                });
+            }
+
+            function drawStreetLightPole(x, baseY) {
+                const poleHeight = 140;
+                const lampSize = 15;
+                
+                // Only draw light effects during night mode
+                if (isNightMode) {
+                    // Draw light effect
+                    const gradient = ctx.createRadialGradient(
+                        x, baseY - poleHeight + lampSize,
+                        0,
+                        x, baseY - poleHeight + lampSize,
+                        100
+                    );
+                    gradient.addColorStop(0, 'rgba(255, 244, 179, 0.6)');
+                    gradient.addColorStop(0.5, 'rgba(255, 244, 179, 0.2)');
+                    gradient.addColorStop(1, 'rgba(255, 244, 179, 0)');
+                    
+                    ctx.beginPath();
+                    ctx.fillStyle = gradient;
+                    ctx.arc(x, baseY - poleHeight + lampSize, 100, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Draw light cone
+                    ctx.beginPath();
+                    ctx.fillStyle = 'rgba(255, 244, 179, 0.2)';
+                    ctx.moveTo(x - 2, baseY - poleHeight + lampSize);
+                    ctx.lineTo(x - 60, baseY);
+                    ctx.lineTo(x + 60, baseY);
+                    ctx.lineTo(x + 2, baseY - poleHeight + lampSize);
+                    ctx.fill();
+                }
+
+                // Draw pole
+                ctx.beginPath();
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 4;
+                ctx.moveTo(x, baseY);
+                ctx.lineTo(x, baseY - poleHeight);
+                ctx.stroke();
+
+                // Draw lamp housing
+                ctx.fillStyle = '#333';
+                ctx.beginPath();
+                ctx.moveTo(x - 15, baseY - poleHeight + 5);
+                ctx.lineTo(x + 15, baseY - poleHeight + 5);
+                ctx.lineTo(x + 10, baseY - poleHeight + 20);
+                ctx.lineTo(x - 10, baseY - poleHeight + 20);
+                ctx.closePath();
+                ctx.fill();
+
+                // Draw lamp (glowing only at night)
+                ctx.beginPath();
+                ctx.fillStyle = isNightMode ? 'rgba(255, 244, 179, 1)' : '#666';
+                ctx.arc(x, baseY - poleHeight + lampSize, lampSize/2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Add bright center to lamp only at night
+                if (isNightMode) {
+                    ctx.beginPath();
+                    ctx.fillStyle = '#FFF';
+                    ctx.arc(x, baseY - poleHeight + lampSize, lampSize/4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            function togglePause() {
+                if (gameStarted) {
+                    gameStarted = false;
+                    clearInterval(gameLoop);
+                    
+                    // Draw pause menu
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = 'white';
+                    ctx.font = '36px Arial';
+                    ctx.fillText('PAUSED', canvas.width/2 - 70, canvas.height/2 - 50);
+                    ctx.font = '24px Arial';
+                    ctx.fillText('Press ESC to resume', canvas.width/2 - 100, canvas.height/2);
+                    ctx.fillText('Press S to save game', canvas.width/2 - 100, canvas.height/2 + 40);
+                    ctx.fillText('Press M to return to menu', canvas.width/2 - 120, canvas.height/2 + 80);
+                } else {
+                    gameStarted = true;
+                    gameLoop = setInterval(update, 1000/60);
+                }
+            }
+
+            function saveGame() {
+                if (!gameStarted) {
+                    const gameState = {
+                        score: score,
+                        highScore: highScore,
+                        player: { ...player },
+                        collectibles: [...collectibles],
+                        obstacles: [...obstacles],
+                        background: { ...background }
+                    };
+                    localStorage.setItem('treasureHunterSave', JSON.stringify(gameState));
+                    
+                    // Show save confirmation
+                    ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+                    ctx.fillRect(canvas.width/2 - 100, canvas.height/2 + 120, 200, 40);
+                    ctx.fillStyle = 'white';
+                    ctx.font = '20px Arial';
+                    ctx.fillText('Game Saved!', canvas.width/2 - 50, canvas.height/2 + 145);
+                }
+            }
+
+            function loadGame() {
+                const savedState = localStorage.getItem('treasureHunterSave');
+                if (savedState) {
+                    const gameState = JSON.parse(savedState);
+                    score = gameState.score;
+                    highScore = gameState.highScore;
+                    player = { ...gameState.player };
+                    collectibles = [...gameState.collectibles];
+                    obstacles = [...gameState.obstacles];
+                    background = { ...gameState.background };
+                    
+                    // Start game with loaded state
+                    startNewGame();
+                } else {
+                    // Show no save data message
+                    alert('No saved game found!');
+                }
+            }
+
+            function quitGame() {
+                if (confirm('Are you sure you want to quit the game?')) {
+                    try {
+                        window.close();
+                    } catch (e) {
+                        // If window.close() fails, return to menu and show message
+                        returnToMenu();
+                        alert('Cannot close the window. You can safely close the tab manually.');
+                    }
+                }
+            }
+
+            function returnToMenu() {
+                // Clear any running game loops
+                clearInterval(gameLoop);
+                gameStarted = false;
+                
+                // Hide game elements
+                canvas.style.display = 'none';
+                scoreElement.style.display = 'none';
+                highScoreElement.style.display = 'none';
+                controlsButton.style.display = 'none';
+                gameOverOverlay.style.display = 'none';
+                
+                // Show main menu
+                mainMenu.style.display = 'block';
+                
+                // Reset game state
+                score = 0;
+                collectibles = [];
+                obstacles = [];
+                player.x = 50;
+                player.y = canvas.height - 50;
+                player.jumping = false;
+                player.velocityY = 0;
+            }
+
+            // Event listeners
+            document.addEventListener('keydown', (e) => {
+                if (keys.hasOwnProperty(e.key)) {
+                    e.preventDefault();
+                    keys[e.key] = true;
+                    
+                    if (e.key === 'ArrowUp' && !player.jumping) {
+                        player.jumping = true;
+                        player.velocityY = player.jumpPower;
+                    }
+                }
+                if (e.key === 'Escape' && gameStarted) {
+                    togglePause();
+                }
+                if (!gameStarted && e.key === 's') {
+                    saveGame();
+                } else if (!gameStarted && e.key === 'm') {
+                    returnToMenu();
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                if (keys.hasOwnProperty(e.key)) {
+                    e.preventDefault();
+                    keys[e.key] = false;
+                }
+            });
+
+            function startNewGame() {
+                // Hide menu, show game
+                mainMenu.style.display = 'none';
+                canvas.style.display = 'block';
+                scoreElement.style.display = 'block';
+                highScoreElement.style.display = 'block';
+                controlsButton.style.display = 'block';
+                gameOverOverlay.style.display = 'none';
+                
+                // Initialize background
+                initBackground();
+                
+                // Reset game state
+                score = 0;
+                scoreElement.textContent = `Score: ${score}`;
+                highScoreElement.textContent = `High Score: ${highScore}`;
+                
+                // Reset player position
+                player.x = 50;
+                player.y = player.groundY;
+                player.jumping = false;
+                player.velocityY = 0;
+                
+                // Clear arrays
+                collectibles = [];
+                obstacles = [];
+                smokeParticles = [];  // Clear smoke particles
+                
+                // Reset background offsets
+                background.mountains.offset = 0;
+                background.road.offset = 0;
+
+                // Start game loop
+                gameStarted = true;
+                gameLoop = setInterval(update, 1000/60);
+
+                // Start spawning collectibles and obstacles
+                spawnCollectibles();
+                spawnObstacles();
+            }
+
+            // Initialize button listeners
+            playBtn.addEventListener('click', startNewGame);
+            loadBtn.addEventListener('click', loadGame);
+            quitBtn.addEventListener('click', quitGame);
+            returnToMenuBtn.addEventListener('click', returnToMenu);
+            restartBtn.addEventListener('click', () => {
+                gameOverOverlay.style.display = 'none';
+                startNewGame();
+            });
+
+            // Add controls button functionality
+            controlsButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                controlsPopup.classList.toggle('show');
+            });
+
+            // Close popup when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!controlsPopup.contains(e.target) && e.target !== controlsButton) {
+                    controlsPopup.classList.remove('show');
+                }
+            });
+
+            // Add the mode selection buttons
+            const dayModeBtn = document.getElementById('dayModeBtn');
+            const nightModeBtn = document.getElementById('nightModeBtn');
+
+            dayModeBtn.addEventListener('click', () => {
+                dayModeBtn.classList.add('selected');
+                nightModeBtn.classList.remove('selected');
+                isNightMode = false;
+            });
+
+            nightModeBtn.addEventListener('click', () => {
+                nightModeBtn.classList.add('selected');
+                dayModeBtn.classList.remove('selected');
+                isNightMode = true;
+            });
+        });
+    </script>
+</body>
+</html>
