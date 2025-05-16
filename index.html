@@ -166,24 +166,44 @@
             margin: 20px auto;
             display: flex;
             justify-content: center;
-            gap: 10px;
+            gap: 20px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
         }
         .mode-btn {
-            padding: 10px 20px;
-            font-size: 16px;
-            border: 2px solid #e94560;
+            flex: 1;
+            min-width: 150px;
+            height: 60px;
+            padding: 0 25px;
+            font-size: 20px;
+            font-weight: 500;
+            border: 3px solid #e94560;
             background-color: transparent;
             color: #fff;
-            border-radius: 5px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: visible;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            outline: none;
+            z-index: 1;
         }
-        .mode-btn:hover {
-            background-color: rgba(233, 69, 96, 0.2);
+        .mode-btn:active {
+            transform: scale(0.97);
         }
         .mode-btn.selected {
             background-color: #e94560;
             color: white;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(233, 69, 96, 0.5);
+        }
+        .mode-btn:not(.selected):hover {
+            background-color: rgba(233, 69, 96, 0.2);
         }
         /* Add styles for device buttons */
         .device-btn {
@@ -264,6 +284,28 @@
         .jump-control {
             margin-right: 30px;
         }
+        .pause-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: none;
+            width: 50px;
+            height: 50px;
+            background-color: rgba(233, 69, 96, 0.9);
+            border: 4px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .pause-button:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body>
@@ -272,6 +314,7 @@
         <div id="highScore">High Score: 0</div>
         <canvas id="gameCanvas" width="800" height="400"></canvas>
         <button id="controlsButton">Controls</button>
+        <button class="pause-button" id="pauseButton">⏸️</button>
         <div id="controlsPopup">
             <strong>Game Controls:</strong><br><br>
             <div><span class="key">←</span> <span class="key">→</span> Move left/right</div>
@@ -659,9 +702,22 @@
                         cloud.opacity = 0.6 + Math.random() * 0.2;
                     }
                     
-                    // Draw cloud with adjusted opacity for night/day mode
-                    const baseOpacity = isNightMode ? 0.3 : 0.8; // Less visible at night but still present
-                    drawCloud(screenX, cloud.y, cloud.width, baseOpacity * cloud.opacity);
+                    // Draw cloud with adjusted opacity and color for night/day mode
+                    if (isNightMode) {
+                        // Night mode clouds with dark blue tint
+                        ctx.save();
+                        ctx.fillStyle = `rgba(44, 62, 80, ${0.6 * cloud.opacity})`;
+                        ctx.beginPath();
+                        ctx.arc(screenX, cloud.y, cloud.width/2, 0, Math.PI * 2);
+                        ctx.arc(screenX + cloud.width/3, cloud.y - cloud.width/6, cloud.width/3, 0, Math.PI * 2);
+                        ctx.arc(screenX + cloud.width/2, cloud.y + cloud.width/6, cloud.width/3, 0, Math.PI * 2);
+                        ctx.arc(screenX - cloud.width/3, cloud.y, cloud.width/3, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+                    } else {
+                        // Day mode clouds (unchanged)
+                        drawCloud(screenX, cloud.y, cloud.width, 0.8 * cloud.opacity);
+                    }
                 });
 
                 // Draw mountains with adjusted colors for night mode
@@ -1866,16 +1922,74 @@
                     clearInterval(gameLoop);
                     resetControls();
                     
-                    // Draw pause menu
+                    // Draw pause menu background
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Draw pause title
                     ctx.fillStyle = 'white';
                     ctx.font = '36px Arial';
-                    ctx.fillText('PAUSED', canvas.width/2 - 70, canvas.height/2 - 50);
-                    ctx.font = '24px Arial';
-                    ctx.fillText('Press ESC to resume', canvas.width/2 - 100, canvas.height/2);
-                    ctx.fillText('Press S to save game', canvas.width/2 - 100, canvas.height/2 + 40);
-                    ctx.fillText('Press M to return to menu', canvas.width/2 - 120, canvas.height/2 + 80);
+                    ctx.fillText('PAUSED', canvas.width/2 - 70, canvas.height/2 - 100);
+                    
+                    // Draw pause menu buttons
+                    const buttonWidth = 200;
+                    const buttonHeight = 40;
+                    const buttonSpacing = 20;
+                    const startY = canvas.height/2 - 50;
+                    
+                    // Define buttons
+                    const pauseButtons = [
+                        { text: 'Go Back', y: startY },
+                        { text: 'Reset', y: startY + buttonHeight + buttonSpacing },
+                        { text: 'Return to Menu', y: startY + (buttonHeight + buttonSpacing) * 2 }
+                    ];
+                    
+                    // Draw buttons
+                    pauseButtons.forEach((button, index) => {
+                        // Button background
+                        ctx.fillStyle = '#e94560';
+                        ctx.fillRect(canvas.width/2 - buttonWidth/2, button.y, buttonWidth, buttonHeight);
+                        
+                        // Button text
+                        ctx.fillStyle = 'white';
+                        ctx.font = '24px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(button.text, canvas.width/2, button.y + buttonHeight/2 + 8);
+                    });
+                    
+                    // Add click event listener for pause menu buttons
+                    const handlePauseClick = (event) => {
+                        const rect = canvas.getBoundingClientRect();
+                        const x = event.clientX - rect.left;
+                        const y = event.clientY - rect.top;
+                        
+                        pauseButtons.forEach((button, index) => {
+                            if (x >= canvas.width/2 - buttonWidth/2 &&
+                                x <= canvas.width/2 + buttonWidth/2 &&
+                                y >= button.y &&
+                                y <= button.y + buttonHeight) {
+                                
+                                switch(index) {
+                                    case 0: // Go Back
+                                        canvas.removeEventListener('click', handlePauseClick);
+                                        gameStarted = true;
+                                        gameLoop = setInterval(update, 1000/60);
+                                        break;
+                                    case 1: // Reset
+                                        canvas.removeEventListener('click', handlePauseClick);
+                                        startNewGame();
+                                        break;
+                                    case 2: // Return to Menu
+                                        canvas.removeEventListener('click', handlePauseClick);
+                                        returnToMenu();
+                                        break;
+                                }
+                            }
+                        });
+                    };
+                    
+                    canvas.addEventListener('click', handlePauseClick);
+                    
                 } else {
                     gameStarted = true;
                     gameLoop = setInterval(update, 1000/60);
@@ -1944,6 +2058,7 @@
                 scoreElement.style.display = 'none';
                 highScoreElement.style.display = 'none';
                 controlsButton.style.display = 'none';
+                document.getElementById('pauseButton').style.display = 'none';
                 gameOverOverlay.style.display = 'none';
                 
                 // Show main menu
@@ -1995,6 +2110,7 @@
                 scoreElement.style.display = 'block';
                 highScoreElement.style.display = 'block';
                 controlsButton.style.display = 'block';
+                document.getElementById('pauseButton').style.display = 'block';
                 gameOverOverlay.style.display = 'none';
                 
                 // Initialize background
@@ -2026,6 +2142,17 @@
                 spawnCollectibles();
                 spawnObstacles();
             }
+
+            // Initialize pause button
+            const pauseButton = document.getElementById('pauseButton');
+            pauseButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                togglePause();
+            });
+            pauseButton.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                togglePause();
+            });
 
             // Initialize button listeners
             playBtn.addEventListener('click', startNewGame);
@@ -2062,49 +2189,76 @@
                 startNewGame();
             });
 
-            // Add touch events for mode buttons
-            dayModeBtn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                dayModeBtn.classList.add('selected');
-                nightModeBtn.classList.remove('selected');
-                isNightMode = false;
-            });
+            // Mode button initialization
+            const modeButtons = {
+                day: document.getElementById('dayModeBtn'),
+                night: document.getElementById('nightModeBtn')
+            };
 
-            nightModeBtn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                nightModeBtn.classList.add('selected');
-                dayModeBtn.classList.remove('selected');
-                isNightMode = true;
-            });
-
-            // Add controls button functionality
-            controlsButton.addEventListener('click', (e) => {
-                e.stopPropagation();
-                controlsPopup.classList.toggle('show');
-            });
-
-            // Close popup when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!controlsPopup.contains(e.target) && e.target !== controlsButton) {
-                    controlsPopup.classList.remove('show');
+            // Function to handle mode changes
+            function handleModeChange(mode, event) {
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
                 }
+
+                isNightMode = mode === 'night';
+                
+                // Update button states
+                modeButtons.day.classList.toggle('selected', !isNightMode);
+                modeButtons.night.classList.toggle('selected', isNightMode);
+
+                // Force redraw of the game if it's started
+                if (gameStarted) {
+                    update();
+                }
+            }
+
+            // Add event listeners for both buttons
+            Object.entries(modeButtons).forEach(([mode, button]) => {
+                if (!button) return; // Skip if button doesn't exist
+
+                // Remove any existing listeners by cloning
+                const newButton = button.cloneNode(true);
+                button.parentNode.replaceChild(newButton, button);
+                modeButtons[mode] = newButton;
+
+                // Add new listeners
+                ['mousedown', 'touchstart'].forEach(eventType => {
+                    newButton.addEventListener(eventType, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleModeChange(mode, e);
+                    }, { passive: false });
+                });
+
+                // Prevent default behaviors
+                ['touchmove', 'touchend', 'touchcancel'].forEach(eventType => {
+                    newButton.addEventListener(eventType, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }, { passive: false });
+                });
+
+                // Prevent context menu
+                newButton.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
             });
 
-            // Add the mode selection buttons
-            const dayModeBtn = document.getElementById('dayModeBtn');
-            const nightModeBtn = document.getElementById('nightModeBtn');
+            // Set initial mode
+            handleModeChange('day');
 
-            dayModeBtn.addEventListener('click', () => {
-                dayModeBtn.classList.add('selected');
-                nightModeBtn.classList.remove('selected');
-                isNightMode = false;
-            });
-
-            nightModeBtn.addEventListener('click', () => {
-                nightModeBtn.classList.add('selected');
-                dayModeBtn.classList.remove('selected');
-                isNightMode = true;
-            });
+            // Remove any duplicate event listeners that might exist
+            const oldDayBtn = document.getElementById('dayModeBtn');
+            const oldNightBtn = document.getElementById('nightModeBtn');
+            if (oldDayBtn !== modeButtons.day) {
+                oldDayBtn.parentNode.replaceChild(modeButtons.day, oldDayBtn);
+            }
+            if (oldNightBtn !== modeButtons.night) {
+                oldNightBtn.parentNode.replaceChild(modeButtons.night, oldNightBtn);
+            }
 
             function drawMoon(worldOffset) {
                 // Calculate moon position with parallax (moves slower than the world)
