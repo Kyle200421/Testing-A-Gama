@@ -185,6 +185,85 @@
             background-color: #e94560;
             color: white;
         }
+        /* Add styles for device buttons */
+        .device-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            background-color: #2d3436;
+        }
+        .device-btn:hover {
+            background-color: #636e72;
+        }
+        .device-icon {
+            font-size: 24px;
+        }
+        .device-text {
+            font-weight: bold;
+        }
+        .device-desc {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        .back-btn {
+            background-color: #636e72;
+        }
+        .back-btn:hover {
+            background-color: #7f8c8d;
+        }
+        .menu-btn {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        /* Android controls */
+        .android-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 800px;
+            margin: 0 auto;
+            z-index: 9999;
+        }
+        .control-btn {
+            width: 80px;
+            height: 80px;
+            background-color: rgba(233, 69, 96, 0.9);
+            border: 4px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            color: white;
+            font-size: 36px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            cursor: pointer;
+            position: relative;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .control-btn:active,
+        .control-btn.pressed {
+            transform: scale(0.9);
+            background-color: rgba(233, 69, 96, 1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .direction-btns {
+            display: flex;
+            gap: 30px;
+            margin-left: 30px;
+        }
+        .jump-control {
+            margin-right: 30px;
+        }
     </style>
 </head>
 <body>
@@ -204,13 +283,24 @@
         
         <div id="mainMenu" class="menu">
             <h1>Treasure Hunter</h1>
+            <button class="menu-btn" id="playBtn">Play Game</button>
+            <button class="menu-btn device-btn" id="desktopBtn" style="display: none;">
+                <span class="device-icon">💻</span>
+                <span class="device-text">Desktop</span>
+                <span class="device-desc">Play with keyboard controls</span>
+            </button>
+            <button class="menu-btn device-btn" id="androidBtn" style="display: none;">
+                <span class="device-icon">📱</span>
+                <span class="device-text">Mobile</span>
+                <span class="device-desc">Play with touch controls</span>
+            </button>
+            <button class="menu-btn back-btn" id="backBtn" style="display: none;">↩ Back to Menu</button>
+            <button class="menu-btn" id="loadBtn">Load Game</button>
+            <button class="menu-btn" id="quitBtn">Quit Game</button>
             <div class="mode-selector">
                 <button class="mode-btn selected" id="dayModeBtn">Day Mode</button>
                 <button class="mode-btn" id="nightModeBtn">Night Mode</button>
             </div>
-            <button class="menu-btn" id="playBtn">Play Game</button>
-            <button class="menu-btn" id="loadBtn">Load Game</button>
-            <button class="menu-btn" id="quitBtn">Quit Game</button>
         </div>
 
         <div class="game-over-overlay" id="gameOverOverlay">
@@ -220,6 +310,17 @@
             <p id="highScoreMessage"></p>
             <button class="menu-btn" id="restartBtn">Restart Game</button>
             <button class="menu-btn" id="returnToMenuBtn">Return to Menu</button>
+        </div>
+    </div>
+
+    <!-- Android game controls -->
+    <div class="android-controls">
+        <div class="direction-btns">
+            <button class="control-btn" id="leftBtn" ontouchstart="return false;">←</button>
+            <button class="control-btn" id="rightBtn" ontouchstart="return false;">→</button>
+        </div>
+        <div class="jump-control">
+            <button class="control-btn" id="jumpBtn" ontouchstart="return false;">↑</button>
         </div>
     </div>
 
@@ -242,6 +343,108 @@
             const controlsPopup = document.getElementById('controlsPopup');
             const restartBtn = document.getElementById('restartBtn');
 
+            // Android controls
+            const leftBtn = document.getElementById('leftBtn');
+            const rightBtn = document.getElementById('rightBtn');
+            const jumpBtn = document.getElementById('jumpBtn');
+
+            // Touch control event listeners with improved handling
+            function setupButton(btn, keyName) {
+                let isPressed = false;
+                
+                function pressButton(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!isPressed) {
+                        isPressed = true;
+                        btn.classList.add('pressed');
+                        keys[keyName] = true;
+                        
+                        if (keyName === 'ArrowUp' && gameStarted && !player.jumping) {
+                            player.jumping = true;
+                            player.velocityY = player.jumpPower;
+                        }
+                    }
+                }
+                
+                function releaseButton(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    isPressed = false;
+                    btn.classList.remove('pressed');
+                    keys[keyName] = false;
+                }
+
+                // Add all event listeners with proper options
+                const eventOptions = { passive: false };
+                
+                // Touch events
+                btn.addEventListener('touchstart', pressButton, eventOptions);
+                btn.addEventListener('touchmove', pressButton, eventOptions);
+                btn.addEventListener('touchend', releaseButton, eventOptions);
+                btn.addEventListener('touchcancel', releaseButton, eventOptions);
+                
+                // Mouse events for testing on desktop
+                btn.addEventListener('mousedown', pressButton, eventOptions);
+                btn.addEventListener('mouseup', releaseButton, eventOptions);
+                btn.addEventListener('mouseleave', releaseButton, eventOptions);
+                
+                // Prevent context menu
+                btn.addEventListener('contextmenu', (e) => e.preventDefault());
+            }
+
+            // Setup all buttons
+            setupButton(leftBtn, 'ArrowLeft');
+            setupButton(rightBtn, 'ArrowRight');
+            setupButton(jumpBtn, 'ArrowUp');
+
+            // Make sure controls don't get stuck when game loses focus
+            window.addEventListener('blur', () => {
+                keys.ArrowLeft = false;
+                keys.ArrowRight = false;
+                keys.ArrowUp = false;
+                document.querySelectorAll('.control-btn').forEach(btn => {
+                    btn.classList.remove('pressed');
+                });
+            });
+
+            // Prevent scrolling while touching buttons
+            document.addEventListener('touchmove', (e) => {
+                if (e.target.closest('.control-btn')) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            // Reset controls when game ends or pauses
+            function resetControls() {
+                keys.ArrowLeft = false;
+                keys.ArrowRight = false;
+                keys.ArrowUp = false;
+                document.querySelectorAll('.control-btn').forEach(btn => {
+                    btn.classList.remove('pressed');
+                });
+            }
+
+            // Add reset controls to relevant game state changes
+            function togglePause() {
+                if (gameStarted) {
+                    gameStarted = false;
+                    clearInterval(gameLoop);
+                    resetControls();
+                    // ... rest of pause code ...
+                } else {
+                    gameStarted = true;
+                    gameLoop = setInterval(update, 1000/60);
+                }
+            }
+
+            function gameOver() {
+                if (gameStarted) {
+                    resetControls();
+                    handleCollision();
+                }
+            }
+
             // Game state
             let score = 0;
             let highScore = 0;
@@ -257,7 +460,7 @@
             // Player setup
             const player = {
                 x: 50,
-                y: canvas.height - 45,  // Adjusted to be inside the road
+                y: canvas.height - 45,
                 width: 30,
                 height: 30,
                 speed: 3,
@@ -265,7 +468,15 @@
                 velocityY: 0,
                 jumpPower: -15,
                 gravity: 0.8,
-                groundY: canvas.height - 45  // Adjusted to match new y position
+                groundY: canvas.height - 45
+            };
+
+            // Controls state
+            const keys = {
+                ArrowLeft: false,
+                ArrowRight: false,
+                ArrowUp: false,
+                Escape: false
             };
 
             // Background elements
@@ -302,14 +513,6 @@
             // Collectibles and obstacles
             let collectibles = [];
             let obstacles = [];
-
-            // Controls
-            const keys = {
-                ArrowLeft: false,
-                ArrowRight: false,
-                ArrowUp: false,
-                Escape: false
-            };
 
             function drawMountains(offset) {
                 // Draw mountains that repeat infinitely
@@ -356,17 +559,15 @@
                 }
             }
 
-            function drawCloud(x, y, width) {
+            function drawCloud(x, y, width, opacity = 1) {
                 ctx.save();
-                
-                ctx.fillStyle = `rgba(255, 255, 255, ${isNightMode ? 0.3 : 0.8})`;
+                ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
                 ctx.beginPath();
                 ctx.arc(x, y, width/2, 0, Math.PI * 2);
                 ctx.arc(x + width/3, y - width/6, width/3, 0, Math.PI * 2);
                 ctx.arc(x + width/2, y + width/6, width/3, 0, Math.PI * 2);
                 ctx.arc(x - width/3, y, width/3, 0, Math.PI * 2);
                 ctx.fill();
-
                 ctx.restore();
             }
 
@@ -376,39 +577,49 @@
                 background.sky.birdSpawnInterval = 2000;
                 background.sky.lastBirdSpawnTime = 0;
                 
-                // Create initial set of birds at different positions
-                for (let i = 0; i < 5; i++) {
+                // Create initial set of birds/fireflies at different positions
+                const initialCount = isNightMode ? 3 : 4;
+                for (let i = 0; i < initialCount; i++) {
+                    const spreadWidth = isNightMode ? canvas.width * 2 : canvas.width * 3;
                     background.sky.birds.push({
                         ...createNewBird(),
-                        x: Math.random() * canvas.width * 2 - canvas.width  // Spread across view
+                        x: Math.random() * spreadWidth - spreadWidth / 2
                     });
                 }
 
-                // Generate clouds
+                // Generate clouds with varied sizes and very slow speeds
+                background.sky.clouds = [];
                 for (let i = 0; i < 4; i++) {
                     background.sky.clouds.push({
-                        x: Math.random() * canvas.width,
+                        x: Math.random() * canvas.width * 2,
                         y: Math.random() * (canvas.height / 3),
-                        width: 80 + Math.random() * 40, // Varied cloud sizes
-                        speed: 0.15 + Math.random() * 0.1 // Much slower speed
+                        width: 80 + Math.random() * 40,
+                        speed: 0.05 + Math.random() * 0.03, // Very slow speed
+                        opacity: 0.6 + Math.random() * 0.2
                     });
                 }
             }
 
             function drawBackground() {
+                // Calculate world offset for parallax effects
+                const playerScreenX = canvas.width / 3;
+                const worldOffset = player.x - playerScreenX;
+
                 // Draw sky gradient based on mode
                 const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
                 if (isNightMode) {
-                    // Night sky gradient
-                    gradient.addColorStop(0, '#0a1f44');  // Dark blue
-                    gradient.addColorStop(1, '#1a365d');  // Lighter blue
+                    // Night sky gradient with more depth
+                    gradient.addColorStop(0, '#0a1f44');  // Dark blue at top
+                    gradient.addColorStop(0.5, '#1a365d'); // Mid blue
+                    gradient.addColorStop(1, '#2a4073');   // Slightly lighter at horizon
                     
-                    // Draw stars
+                    // Draw stars with parallax effect
                     for (let i = 0; i < 100; i++) {
-                        const x = ((background.mountains.offset * 0.1) + i * 37) % canvas.width;
+                        const parallaxFactor = 0.1;
+                        const x = (((worldOffset * parallaxFactor) + i * 37) % canvas.width);
                         const y = (i * 23) % (canvas.height * 0.7);
                         const size = Math.random() * 2;
-                        const opacity = 0.5 + Math.random() * 0.5;
+                        const opacity = 0.5 + Math.sin(Date.now() / 1000 + i) * 0.3;
                         
                         ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
                         ctx.beginPath();
@@ -417,23 +628,10 @@
                     }
 
                     // Draw moon
-                    ctx.fillStyle = '#ffffff';
-                    ctx.beginPath();
-                    ctx.arc(100, 80, 30, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    // Moon crater details
-                    ctx.fillStyle = '#f0f0f0';
-                    ctx.beginPath();
-                    ctx.arc(90, 70, 8, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.beginPath();
-                    ctx.arc(110, 85, 6, 0, Math.PI * 2);
-                    ctx.fill();
+                    drawMoon(worldOffset);
                 } else {
-                    // Day sky gradient
-                    gradient.addColorStop(0, '#87CEEB');  // Light blue
-                    gradient.addColorStop(1, '#4A90E2');  // Darker blue
+                    gradient.addColorStop(0, '#87CEEB');
+                    gradient.addColorStop(1, '#4A90E2');
                 }
                 ctx.fillStyle = gradient;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -443,13 +641,31 @@
                     drawBird(bird);
                 });
 
-                // Draw clouds with adjusted opacity for night mode
+                // Update and draw clouds - Always draw clouds regardless of mode
+                const parallaxFactor = 0.3;
                 background.sky.clouds.forEach(cloud => {
-                    drawCloud(cloud.x, cloud.y, cloud.width, isNightMode ? 0.3 : 0.8);
+                    // Move cloud very slowly
+                    cloud.x -= cloud.speed;
+                    
+                    // Calculate cloud's screen position
+                    const screenX = cloud.x - (worldOffset * parallaxFactor);
+                    
+                    // If cloud moves off screen to the left, reset it to the right
+                    if (screenX + cloud.width < -100) {
+                        cloud.x = canvas.width + worldOffset * parallaxFactor + Math.random() * 200;
+                        cloud.y = Math.random() * (canvas.height / 3);
+                        cloud.width = 80 + Math.random() * 40;
+                        cloud.speed = 0.05 + Math.random() * 0.03;
+                        cloud.opacity = 0.6 + Math.random() * 0.2;
+                    }
+                    
+                    // Draw cloud with adjusted opacity for night/day mode
+                    const baseOpacity = isNightMode ? 0.3 : 0.8; // Less visible at night but still present
+                    drawCloud(screenX, cloud.y, cloud.width, baseOpacity * cloud.opacity);
                 });
 
                 // Draw mountains with adjusted colors for night mode
-                ctx.fillStyle = isNightMode ? '#1a4731' : '#90EE90';  // Darker green for night
+                ctx.fillStyle = isNightMode ? '#1a4731' : '#90EE90';
                 drawMountains(background.mountains.offset);
 
                 // Draw road with adjusted colors for night mode
@@ -471,14 +687,50 @@
                 // Calculate world offset based on player's absolute position
                 const worldOffset = player.x - playerScreenX;
 
+                // Update player position in world coordinates
+                if (gameStarted) {
+                    if (keys.ArrowLeft) {
+                        // Prevent moving left beyond the starting point
+                        const newX = player.x - player.speed;
+                        if (newX >= 50) { // 50 is the initial starting position
+                            player.x = newX;
+                        }
+                    }
+                    if (keys.ArrowRight) {
+                        // Allow infinite movement to the right
+                        player.x += player.speed;
+                    }
+
+                    // Handle jumping physics
+                    if (player.jumping) {
+                        player.velocityY += player.gravity;
+                        player.y += player.velocityY;
+
+                        // Ground collision
+                        if (player.y >= player.groundY) {
+                            player.y = player.groundY;
+                            player.jumping = false;
+                            player.velocityY = 0;
+                        }
+                    }
+                }
+
                 // Update and draw birds
                 background.sky.birds = background.sky.birds.filter(bird => {
                     // Convert bird's world position to screen position
                     const birdScreenX = bird.x - worldOffset;
                     
-                    // Update bird position
-                    bird.x += bird.speed;
-                    bird.y += Math.sin(bird.x / 100) * 0.5;  // Add gentle wave motion
+                    // Update position based on mode
+                    if (isNightMode) {
+                        // Firefly movement: gentle floating with vertical drift
+                        bird.x += bird.speed * 0.5;
+                        bird.verticalOffset += bird.verticalSpeed;
+                        bird.y += Math.sin(bird.verticalOffset) * 0.8;
+                    } else {
+                        // Bird movement with gentler wave motion
+                        bird.x += bird.speed;
+                        bird.y += Math.sin(bird.x / bird.waveFrequency) * bird.waveAmplitude;
+                    }
                     
                     // If bird moves off screen, reset it to start
                     if (birdScreenX > canvas.width + bird.size * 2) {
@@ -576,82 +828,58 @@
                     ctx.fillRect(playerScreenX, player.y, player.width, player.height);
                 }
 
-                // Draw and update collectibles (coins)
-for (let i = collectibles.length - 1; i >= 0; i--) {
-    const coin = collectibles[i];
-    // Move coin to the left as the world scrolls
-    coin.x -= background.gameSpeed;
+                // Update and draw collectibles with world offset
+                for (let i = collectibles.length - 1; i >= 0; i--) {
+                    const coin = collectibles[i];
+                    
+                    // Move coin to the left as the world scrolls (same as bombs)
+                    coin.x -= background.gameSpeed;
+                    
+                    // Calculate coin's screen position
+                    const coinScreenX = coin.x - worldOffset;
+                    
+                    // Draw coin at screen position
+                    drawCoin(coinScreenX, coin.y, coin.width, coin.height);
 
-    // Draw coin at its position relative to the world offset
-    drawCoin(coin.x - worldOffset, coin.y, coin.width, coin.height);
-
-    // Collision with player
-    if (
-        playerScreenX < coin.x - worldOffset + coin.width &&
-        playerScreenX + player.width > coin.x - worldOffset &&
-        player.y < coin.y + coin.height &&
-        player.y + player.height > coin.y
-    ) {
-        // Collect coin
-        collectibles.splice(i, 1);
-        score += 10;
-        scoreElement.textContent = `Score: ${score}`;
-    } else if (coin.x - worldOffset + coin.width < 0) {
-        // Remove coins that have gone off screen
-        collectibles.splice(i, 1);
-    }
-}
-
-// Draw and update obstacles (bombs)
-for (let i = obstacles.length - 1; i >= 0; i--) {
-    const bomb = obstacles[i];
-    // Move bomb to the left as the world scrolls
-    bomb.x -= background.gameSpeed;
-
-    // Draw bomb at its position relative to the world offset
-    drawBomb(bomb.x - worldOffset, bomb.y, bomb.width, bomb.height);
-
-    // Collision with player
-    if (
-        playerScreenX < bomb.x - worldOffset + bomb.width &&
-        playerScreenX + player.width > bomb.x - worldOffset &&
-        player.y < bomb.y + bomb.height &&
-        player.y + player.height > bomb.y
-    ) {
-        // Hit bomb: game over
-        handleCollision(bomb);
-        return; // Stop update loop
-    } else if (bomb.x - worldOffset + bomb.width < 0) {
-        // Remove bombs that have gone off screen
-        obstacles.splice(i, 1);
-    }
-}
-
-                // Update player position in world coordinates
-                if (gameStarted) {
-                    if (keys.ArrowLeft) {
-                        // Prevent moving left beyond the starting point
-                        const newX = player.x - player.speed;
-                        if (newX >= 50) { // 50 is the initial starting position
-                            player.x = newX;
-                        }
+                    // Collision with player
+                    if (
+                        playerScreenX < coinScreenX + coin.width &&
+                        playerScreenX + player.width > coinScreenX &&
+                        player.y < coin.y + coin.height &&
+                        player.y + player.height > coin.y
+                    ) {
+                        // Collect coin
+                        collectibles.splice(i, 1);
+                        score += 1;
+                        scoreElement.textContent = `Score: ${score}`;
+                    } else if (coinScreenX + coin.width < -50) {
+                        // Remove coins that have gone off screen
+                        collectibles.splice(i, 1);
                     }
-                    if (keys.ArrowRight) {
-                        // Allow infinite movement to the right
-                        player.x += player.speed;
-                    }
+                }
 
-                    // Handle jumping physics
-                    if (player.jumping) {
-                        player.velocityY += player.gravity;
-                        player.y += player.velocityY;
+                // Draw and update obstacles (bombs)
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    const bomb = obstacles[i];
+                    // Move bomb to the left as the world scrolls
+                    bomb.x -= background.gameSpeed;
+                    
+                    // Draw bomb at its position relative to the world offset
+                    drawBomb(bomb.x - worldOffset, bomb.y, bomb.width, bomb.height);
 
-                        // Ground collision
-                        if (player.y >= player.groundY) {
-                            player.y = player.groundY;
-                            player.jumping = false;
-                            player.velocityY = 0;
-                        }
+                    // Collision with player
+                    if (
+                        playerScreenX < bomb.x - worldOffset + bomb.width &&
+                        playerScreenX + player.width > bomb.x - worldOffset &&
+                        player.y < bomb.y + bomb.height &&
+                        player.y + player.height > bomb.y
+                    ) {
+                        // Hit bomb: game over
+                        handleCollision(bomb);
+                        return;
+                    } else if (bomb.x - worldOffset + bomb.width < -50) {
+                        // Remove bombs that have gone off screen
+                        obstacles.splice(i, 1);
                     }
                 }
             }
@@ -829,12 +1057,6 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
                 }, 1000/60);
             }
 
-            function gameOver() {
-                if (gameStarted) {
-                    handleCollision();
-                }
-            }
-
             function checkCollision(rect1, rect2) {
                 return rect1.x < rect2.x + rect2.width &&
                        rect1.x + rect1.width > rect2.x &&
@@ -855,43 +1077,34 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
                     // Calculate spawn position relative to player's view
                     const worldOffset = player.x - canvas.width / 3;
                     const spawnX = worldOffset + canvas.width + 50; // Spawn just off the right edge of screen
-                    const baseY = player.groundY - 50; // Slightly above ground level
                     
-                    // Create a small group of coins (3-5 coins) in a pattern
-                    const coinCount = 3 + Math.floor(Math.random() * 3);
-                    const spacing = 40; // Space between coins
+                    // Determine number of coins based on random interval (2-6 seconds)
+                    const currentTime = Date.now();
+                    const lastSpawnTime = window.lastCoinSpawnTime || 0;
+                    const timeDiff = currentTime - lastSpawnTime;
                     
-                    // Create different coin patterns
-                    const patterns = [
-                        // Straight line
-                        (i) => ({ x: spawnX + i * spacing, y: baseY }),
-                        // Arc pattern
-                        (i) => ({ x: spawnX + i * spacing, y: baseY - Math.sin(i * Math.PI / 2) * 50 }),
-                        // Zigzag pattern
-                        (i) => ({ x: spawnX + i * spacing, y: baseY - (i % 2 === 0 ? 30 : -30) }),
-                        // Diamond pattern
-                        (i) => {
-                            const angle = (i / coinCount) * Math.PI * 2;
-                            return {
-                                x: spawnX + i * spacing,
-                                y: baseY + Math.sin(angle) * 40
-                            };
-                        }
-                    ];
-
-                    // Select random pattern
-                    const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+                    // Calculate coins based on spawn time (2-6 seconds)
+                    const spawnTimeRatio = Math.min(Math.max(timeDiff / 1000 - 2, 0) / 4, 1); // 0 to 1 ratio
+                    const coinCount = Math.floor(8 + (spawnTimeRatio * 4)); // 8 to 12 coins
                     
+                    // Create scattered coin pattern
                     for (let i = 0; i < coinCount; i++) {
-                        const position = pattern(i);
+                        // Create random positions within a reasonable area
+                        const randomX = spawnX + (Math.random() * 200 - 100); // Spread over 200px width
+                        const baseY = player.groundY - 50; // Base height above ground
+                        const randomY = baseY + (Math.random() * 100 - 50); // Spread over 100px height
+                        
                         collectibles.push({
-                            x: position.x,
-                            y: position.y,
-                            width: 30,
-                            height: 30
+                            x: randomX,
+                            y: randomY,
+                            width: 25,  // Reduced from 30
+                            height: 25, // Reduced from 30
+                            value: 1
                         });
                     }
-                }, 5000 + Math.random() * 5000); // Random interval between 5-10 seconds
+                    
+                    window.lastCoinSpawnTime = currentTime;
+                }, 2000); // Check every 2 seconds
             }
 
             function spawnObstacles() {
@@ -908,54 +1121,65 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
                     const worldOffset = player.x - canvas.width / 3;
                     const spawnX = worldOffset + canvas.width + 50; // Spawn just off the right edge of screen
                     
-                    // Random vertical position within a reasonable range
-                    const minY = player.groundY - 100; // Higher than player can jump
-                    const maxY = player.groundY - 20; // Just above ground
-                    const spawnY = minY + Math.random() * (maxY - minY);
-                    
-                    // Add some variation to bomb placement
-                    const bombTypes = [
-                        // Single bomb
-                        () => [{x: spawnX, y: spawnY}],
-                        // Two bombs with gap in between
-                        () => [
-                            {x: spawnX, y: spawnY},
-                            {x: spawnX + 100, y: spawnY - 30}
-                        ],
-                        // Three bombs in triangle formation
-                        () => [
-                            {x: spawnX, y: spawnY},
-                            {x: spawnX + 60, y: spawnY - 40},
-                            {x: spawnX + 120, y: spawnY}
-                        ]
-                    ];
-
-                    // Select random bomb pattern
-                    const pattern = bombTypes[Math.floor(Math.random() * bombTypes.length)]();
-                    
-                    // Add all bombs from the pattern
-                    pattern.forEach(pos => {
-                        obstacles.push({
-                            x: pos.x,
-                            y: pos.y,
+                    // Only spawn if there are less than 5 bombs on screen
+                    if (obstacles.length < 5) {
+                        // Create a group of bombs with specific patterns
+                        const bombGroup = [];
+                        
+                        // Add two ground-level bombs with spacing
+                        const groundY = player.groundY - 20; // Just above ground level
+                        bombGroup.push({
+                            x: spawnX,
+                            y: groundY,
                             width: 40,
                             height: 40
                         });
-                    });
-                }, 7000 + Math.random() * 3000); // Random interval between 7-10 seconds
+                        
+                        bombGroup.push({
+                            x: spawnX + 150, // 150px gap between ground bombs
+                            y: groundY,
+                            width: 40,
+                            height: 40
+                        });
+                        
+                        // Add 3 floating bombs with larger gaps
+                        const floatingHeights = [
+                            player.groundY - 100, // High
+                            player.groundY - 60,  // Medium
+                            player.groundY - 80   // Medium-high
+                        ];
+                        
+                        // Add floating bombs with large gaps
+                        floatingHeights.forEach((height, index) => {
+                            bombGroup.push({
+                                x: spawnX + 300 + (index * 200), // 200px gaps between floating bombs
+                                y: height,
+                                width: 40,
+                                height: 40
+                            });
+                        });
+                        
+                        // Add all bombs to obstacles array
+                        obstacles.push(...bombGroup);
+                    }
+                }, 10000 + Math.random() * 10000); // Random interval between 10-20 seconds
             }
 
             function drawCoin(x, y, width, height) {
                 ctx.save();
                 ctx.translate(x + width/2, y + height/2);
                 
-                // Slower, smoother rotation
-                const rotationSpeed = 0.02;
+                // Slower rotation speed (reduced from 0.02 to 0.01)
+                const rotationSpeed = 0.01;
                 coinRotation += rotationSpeed;
                 
                 // Create 3D effect with rotation
                 const perspective = Math.cos(coinRotation) * 0.5;
                 ctx.scale(Math.abs(perspective) + 0.5, 1);
+                
+                // Reduce size by about 20%
+                const scaleFactor = 0.8;
+                ctx.scale(scaleFactor, scaleFactor);
                 
                 // Determine if showing heads or tails based on rotation
                 const showingHeads = perspective > 0;
@@ -972,7 +1196,7 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
                     ctx.beginPath();
                     ctx.arc(0, 0, width/2, 0, Math.PI * 2);
                     ctx.strokeStyle = '#B8860B';
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = 1.5; // Slightly thinner line
                     ctx.stroke();
                     
                     if (showingHeads) {
@@ -981,7 +1205,7 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
                         ctx.beginPath();
                         ctx.arc(0, 0, width/3, 0, Math.PI * 2);
                         ctx.strokeStyle = '#B8860B';
-                        ctx.lineWidth = 1.5;
+                        ctx.lineWidth = 1; // Thinner inner circle
                         ctx.stroke();
                         
                         // Center star
@@ -1009,14 +1233,14 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
                             const circleX = Math.cos(angle) * width/4;
                             const circleY = Math.sin(angle) * width/4;
                             ctx.beginPath();
-                            ctx.arc(circleX, circleY, width/10, 0, Math.PI * 2);
+                            ctx.arc(circleX, circleY, width/12, 0, Math.PI * 2);
                             ctx.fillStyle = '#B8860B';
                             ctx.fill();
                         }
                         
                         // Center circle
                         ctx.beginPath();
-                        ctx.arc(0, 0, width/8, 0, Math.PI * 2);
+                        ctx.arc(0, 0, width/10, 0, Math.PI * 2);
                         ctx.fill();
                     }
                 }
@@ -1279,43 +1503,91 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
             }
 
             function createNewBird() {
-                const size = 12 + Math.random() * 3; // Size range (12-15)
+                const size = isNightMode ? (4 + Math.random() * 2) : (12 + Math.random() * 3); // Smaller for fireflies
+                
+                // Bird color palette
+                const birdColors = [
+                    '#485460', // Dark gray
+                    '#1e272e', // Charcoal
+                    '#786fa6', // Dusty purple
+                    '#596275', // Steel gray
+                    '#574b90', // Deep purple
+                    '#303952', // Navy blue
+                    '#6D214F', // Dark burgundy
+                    '#2C3A47'  // Slate gray
+                ];
+                
                 return {
                     x: -size * 2, // Start from left side
-                    y: Math.random() * (canvas.height / 3) + 30,
+                    y: Math.random() * (canvas.height / 2) + 30, // Higher range for fireflies
                     size: size,
                     wingPosition: Math.random() * Math.PI * 2,
-                    wingSpeed: 0.3 + Math.random() * 0.1, // Faster wing movement
-                    speed: 3 + Math.random() * 2, // Faster horizontal movement
-                    color: Math.random() < 0.7 ? '#485460' : '#1e272e', // Natural bird colors
+                    wingSpeed: isNightMode ? 0.1 + Math.random() * 0.05 : 0.15 + Math.random() * 0.05, // Much slower wing movement
+                    speed: isNightMode ? 1 + Math.random() : 1.2 + Math.random() * 0.8, // Much slower movement
+                    color: birdColors[Math.floor(Math.random() * birdColors.length)], // Random color from palette
                     headTilt: Math.sin(Date.now() / 1000) * 0.1,
-                    type: Math.floor(Math.random() * 3)
+                    type: Math.floor(Math.random() * 3),
+                    // Firefly specific properties
+                    verticalOffset: Math.random() * Math.PI * 2,
+                    verticalSpeed: 0.02 + Math.random() * 0.01,
+                    // Additional movement properties
+                    waveAmplitude: 0.2 + Math.random() * 0.3, // Gentler wave motion
+                    waveFrequency: 150 + Math.random() * 50 // Slower wave frequency
                 };
             }
 
             function drawBird(bird) {
-                ctx.save();
-                ctx.translate(bird.x, bird.y);
-                
-                // Add slight forward tilt
-                const flyingTilt = -0.1; // Subtle forward tilt
-                ctx.rotate(flyingTilt + bird.headTilt);
+                if (isNightMode) {
+                    // Draw firefly in night mode
+                    ctx.save();
+                    ctx.translate(bird.x, bird.y);
 
-                // Draw based on bird type
-                switch(bird.type) {
-                    case 0: // Small bird (sparrow-like)
-                        drawSmallBird(bird);
-                        break;
-                    case 1: // Medium bird (swallow-like)
-                        drawMediumBird(bird);
-                        break;
-                    case 2: // Large bird (hawk-like)
-                        drawLargeBird(bird);
-                        break;
+                    // Create pulsing glow effect
+                    const glowIntensity = 0.5 + Math.sin(bird.wingPosition) * 0.3;
+                    
+                    // Outer glow
+                    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, bird.size * 2);
+                    gradient.addColorStop(0, `rgba(255, 255, 150, ${glowIntensity})`);
+                    gradient.addColorStop(0.5, `rgba(255, 255, 100, ${glowIntensity * 0.3})`);
+                    gradient.addColorStop(1, 'rgba(255, 255, 0, 0)');
+                    
+                    ctx.beginPath();
+                    ctx.fillStyle = gradient;
+                    ctx.arc(0, 0, bird.size * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Inner bright core
+                    ctx.beginPath();
+                    ctx.fillStyle = `rgba(255, 255, 200, ${glowIntensity + 0.2})`;
+                    ctx.arc(0, 0, bird.size * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.restore();
+                } else {
+                    // Draw bird in day mode
+                    ctx.save();
+                    ctx.translate(bird.x, bird.y);
+                    
+                    // Add slight forward tilt
+                    const flyingTilt = -0.1; // Subtle forward tilt
+                    ctx.rotate(flyingTilt + bird.headTilt);
+
+                    // Draw based on bird type
+                    switch(bird.type) {
+                        case 0: // Small bird (sparrow-like)
+                            drawSmallBird(bird);
+                            break;
+                        case 1: // Medium bird (swallow-like)
+                            drawMediumBird(bird);
+                            break;
+                        case 2: // Large bird (hawk-like)
+                            drawLargeBird(bird);
+                            break;
+                    }
+                    
+                    ctx.restore();
                 }
-                
-                ctx.restore();
-                bird.wingPosition += bird.wingSpeed;
+                bird.wingPosition += isNightMode ? 0.03 : bird.wingSpeed; // Slower pulsing for fireflies
             }
 
             function drawSmallBird(bird) {
@@ -1507,11 +1779,20 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
                     );
                 }
 
-                // Draw fixed street lights at specific positions
-                const lampPositions = [100, 400, 700];  // Fixed positions for the lamps
-                lampPositions.forEach(x => {
-                    drawStreetLightPole(x, canvas.height - roadHeight);
-                });
+                // Calculate world offset based on player's position
+                const playerScreenX = canvas.width / 3;
+                const worldOffset = player.x - playerScreenX;
+
+                // Draw infinite scrolling street lights
+                const lampSpacing = 300; // Space between each lamp
+                const firstVisibleLamp = Math.floor(worldOffset / lampSpacing) * lampSpacing;
+                const lastVisibleLamp = firstVisibleLamp + canvas.width + lampSpacing;
+
+                // Draw all visible lamps
+                for (let x = firstVisibleLamp; x <= lastVisibleLamp; x += lampSpacing) {
+                    const screenX = x - worldOffset;
+                    drawStreetLightPole(screenX, canvas.height - roadHeight);
+                }
             }
 
             function drawStreetLightPole(x, baseY) {
@@ -1583,6 +1864,7 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
                 if (gameStarted) {
                     gameStarted = false;
                     clearInterval(gameLoop);
+                    resetControls();
                     
                     // Draw pause menu
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
@@ -1683,7 +1965,8 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
                     e.preventDefault();
                     keys[e.key] = true;
                     
-                    if (e.key === 'ArrowUp' && !player.jumping) {
+                    // Only allow jumping if game has started and player is on ground
+                    if (e.key === 'ArrowUp' && gameStarted && !player.jumping) {
                         player.jumping = true;
                         player.velocityY = player.jumpPower;
                     }
@@ -1731,29 +2014,67 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
                 // Clear arrays
                 collectibles = [];
                 obstacles = [];
-                smokeParticles = [];  // Clear smoke particles
+                smokeParticles = [];
                 
                 // Reset background offsets
                 background.mountains.offset = 0;
                 background.road.offset = 0;
 
-                // Start game loop
+                // Start game immediately
                 gameStarted = true;
                 gameLoop = setInterval(update, 1000/60);
-
-                // Start spawning collectibles and obstacles
                 spawnCollectibles();
                 spawnObstacles();
             }
 
             // Initialize button listeners
             playBtn.addEventListener('click', startNewGame);
+            playBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startNewGame();
+            });
+
             loadBtn.addEventListener('click', loadGame);
+            loadBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                loadGame();
+            });
+
             quitBtn.addEventListener('click', quitGame);
+            quitBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                quitGame();
+            });
+
             returnToMenuBtn.addEventListener('click', returnToMenu);
+            returnToMenuBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                returnToMenu();
+            });
+
             restartBtn.addEventListener('click', () => {
                 gameOverOverlay.style.display = 'none';
                 startNewGame();
+            });
+            restartBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                gameOverOverlay.style.display = 'none';
+                startNewGame();
+            });
+
+            // Add touch events for mode buttons
+            dayModeBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                dayModeBtn.classList.add('selected');
+                nightModeBtn.classList.remove('selected');
+                isNightMode = false;
+            });
+
+            nightModeBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                nightModeBtn.classList.add('selected');
+                dayModeBtn.classList.remove('selected');
+                isNightMode = true;
             });
 
             // Add controls button functionality
@@ -1784,6 +2105,88 @@ for (let i = obstacles.length - 1; i >= 0; i--) {
                 dayModeBtn.classList.remove('selected');
                 isNightMode = true;
             });
+
+            function drawMoon(worldOffset) {
+                // Calculate moon position with parallax (moves slower than the world)
+                const parallaxFactor = 0.02; // Very slow parallax for distant moon effect
+                const baseX = canvas.width - 100; // Base position on right side
+                const moonX = baseX - (worldOffset * parallaxFactor);
+                const moonY = 80; // Position moon higher in the sky
+                const moonRadius = 40;
+                
+                // Create outer glow effect
+                const moonGlow = ctx.createRadialGradient(
+                    moonX, moonY, moonRadius * 0.8,
+                    moonX, moonY, moonRadius * 2.5
+                );
+                moonGlow.addColorStop(0, 'rgba(255, 255, 200, 0.3)');
+                moonGlow.addColorStop(0.5, 'rgba(255, 255, 200, 0.1)');
+                moonGlow.addColorStop(1, 'rgba(255, 255, 200, 0)');
+                
+                // Draw the glow
+                ctx.beginPath();
+                ctx.fillStyle = moonGlow;
+                ctx.arc(moonX, moonY, moonRadius * 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw the main moon
+                const moonGradient = ctx.createRadialGradient(
+                    moonX - moonRadius * 0.2, moonY - moonRadius * 0.2, 0,
+                    moonX, moonY, moonRadius
+                );
+                moonGradient.addColorStop(0, '#FFFDE7');  // Warm center
+                moonGradient.addColorStop(0.2, '#FFF8E1'); // Slightly cooler
+                moonGradient.addColorStop(1, '#FFE082');   // Slight yellow tint at edge
+
+                ctx.beginPath();
+                ctx.fillStyle = moonGradient;
+                ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Add subtle crater details
+                const craters = [
+                    { x: -0.2, y: 0.1, size: 0.15 },
+                    { x: 0.3, y: -0.2, size: 0.1 },
+                    { x: 0.1, y: 0.3, size: 0.12 }
+                ];
+
+                craters.forEach(crater => {
+                    const craterX = moonX + crater.x * moonRadius;
+                    const craterY = moonY + crater.y * moonRadius;
+                    const craterSize = crater.size * moonRadius;
+
+                    // Draw slightly darker crater
+                    const craterGradient = ctx.createRadialGradient(
+                        craterX, craterY, 0,
+                        craterX, craterY, craterSize
+                    );
+                    craterGradient.addColorStop(0, 'rgba(189, 189, 189, 0.2)');
+                    craterGradient.addColorStop(1, 'rgba(189, 189, 189, 0)');
+
+                    ctx.beginPath();
+                    ctx.fillStyle = craterGradient;
+                    ctx.arc(craterX, craterY, craterSize, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                // Add stars around the moon for extra effect
+                const starCount = 15;
+                for (let i = 0; i < starCount; i++) {
+                    const angle = (i / starCount) * Math.PI * 2;
+                    const distance = moonRadius * (2 + Math.random());
+                    const starX = moonX + Math.cos(angle) * distance;
+                    const starY = moonY + Math.sin(angle) * distance;
+                    const starSize = 1 + Math.random();
+                    
+                    // Create twinkling effect
+                    const starOpacity = 0.5 + Math.sin(Date.now() / 1000 + i) * 0.3;
+                    
+                    ctx.beginPath();
+                    ctx.fillStyle = `rgba(255, 255, 255, ${starOpacity})`;
+                    ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
         });
     </script>
 </body>
